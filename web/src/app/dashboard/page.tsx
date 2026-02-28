@@ -21,6 +21,7 @@ export default async function DashboardPage() {
 
   if (nodesError) {
     console.error('Error fetching nodes:', nodesError)
+    throw new Error(`Failed to fetch nodes: ${nodesError.message || JSON.stringify(nodesError)}`)
   }
 
   // Fetch all edges for the user
@@ -31,6 +32,7 @@ export default async function DashboardPage() {
 
   if (edgesError) {
     console.error('Error fetching edges:', edgesError)
+    throw new Error(`Failed to fetch edges: ${edgesError.message || JSON.stringify(edgesError)}`)
   }
 
   // Fetch all entities for the user (optional, could be used for advanced node detailing)
@@ -41,6 +43,7 @@ export default async function DashboardPage() {
 
   if (entitiesError) {
     console.error('Error fetching entities:', entitiesError)
+    throw new Error(`Failed to fetch entities: ${entitiesError.message || JSON.stringify(entitiesError)}`)
   }
 
   return (

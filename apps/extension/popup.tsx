@@ -4,20 +4,30 @@ import "./style.css"
 
 function IndexPopup() {
   const [isCapturing, setIsCapturing] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const handleCapture = async () => {
     setIsCapturing(true)
+    setErrorMsg(null)
     
-    // Send message to content script to capture
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (tabs[0].id) {
-      chrome.tabs.sendMessage(tabs[0].id, { action: "capture" }, (response) => {
+    try {
+      // Send message to content script to capture
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+      if (tabs[0].id) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "capture" }, (response) => {
+          setIsCapturing(false)
+          if (chrome.runtime.lastError) {
+            console.error(chrome.runtime.lastError)
+            setErrorMsg("Cannot capture this page. Make sure it's a valid website (not a new tab or chrome:// page) and try refreshing.")
+          }
+        })
+      } else {
         setIsCapturing(false)
-        if (chrome.runtime.lastError) {
-          console.error(chrome.runtime.lastError)
-          // Probably a reserved page where content scripts can't run
-        }
-      })
+        setErrorMsg("No active tab found.")
+      }
+    } catch (err: any) {
+      setIsCapturing(false)
+      setErrorMsg(err.message || "An unexpected error occurred.")
     }
   }
 
@@ -38,6 +48,12 @@ function IndexPopup() {
       <p className="text-sm text-slate-600 mb-4">
         Capture this page to your brain.
       </p>
+
+      {errorMsg && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-xs text-red-600 text-center">
+          {errorMsg}
+        </div>
+      )}
 
       <button
         onClick={handleCapture}

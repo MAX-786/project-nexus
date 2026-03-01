@@ -20,15 +20,18 @@ export async function extractPageContent(): Promise<CaptureResult> {
     text = extractYoutubeTranscript() || "No transcript available to capture."
   } else {
     // Standard webpage extraction using Readability
-    const documentClone = document.cloneNode(true) as Document
-    const reader = new Readability(documentClone)
-    const article = reader.parse()
+    try {
+      const documentClone = document.cloneNode(true) as Document
+      const reader = new Readability(documentClone)
+      const article = reader.parse()
 
-    if (article && article.textContent) {
-      // Clean up whitespace
-      text = article.textContent.replace(/\s+/g, ' ').trim()
-    } else {
-      // Fallback: Just grab body text
+      if (article && article.textContent) {
+        text = article.textContent.replace(/\s+/g, ' ').trim()
+      } else {
+        throw new Error("No article content")
+      }
+    } catch (e) {
+      // Fallback: Just grab body text if Readability fails
       text = document.body.innerText.replace(/\s+/g, ' ').trim()
     }
   }

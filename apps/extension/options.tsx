@@ -10,6 +10,10 @@ function Options() {
   const [openAiKey, setOpenAiKey] = useStorage("openai-key", "")
   const [anthropicKey, setAnthropicKey] = useStorage("anthropic-key", "")
   const [geminiKey, setGeminiKey] = useStorage("gemini-key", "")
+  const [activeProvider, setActiveProvider] = useStorage("active-provider", "openai")
+  
+  // Custom BYOK override for the Database Authentication Layer
+  const [supabaseJwt, setSupabaseJwt] = useStorage("supabase-jwt", "")
   
   const [saved, setSaved] = useState(false)
 
@@ -24,6 +28,23 @@ function Options() {
       <p className="text-slate-500 mb-8">
         Configure your AI models to run directly in your browser. Keys are stored locally and never sent to our servers.
       </p>
+
+      <div className="flex flex-col gap-2 mb-8 bg-slate-50 p-4 rounded-md border text-sm">
+        <label htmlFor="provider" className="font-semibold text-slate-700">Active AI Provider</label>
+        <select
+          id="provider"
+          className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none w-full max-w-xs bg-white"
+          value={activeProvider}
+          onChange={(e) => setActiveProvider(e.target.value)}
+        >
+          <option value="openai">OpenAI (GPT-4o mini)</option>
+          <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+          <option value="gemini">Google (Gemini 2.5 Flash)</option>
+        </select>
+        <p className="text-xs text-slate-500 mt-2">
+          Note: Anthropic does not provide native vector embeddings. If Anthropic is selected, you must also provide either an OpenAI or Gemini key to generate the embeddings.
+        </p>
+      </div>
 
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
@@ -60,6 +81,25 @@ function Options() {
             value={geminiKey}
             onChange={(e) => setGeminiKey(e.target.value)}
           />
+        </div>
+
+        <div className="my-4 border-t pt-6">
+          <h2 className="text-xl font-bold mb-2">Remote Access Token</h2>
+          <p className="text-sm text-slate-500 mb-4">
+             To save captures to your secure database, you must provide your authenticated JWT token. 
+             You can find this running `console.log(await supabase.auth.getSession())` in the web app.
+          </p>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="jwt" className="font-semibold">Supabase JWT Auth Token</label>
+            <input
+              id="jwt"
+              type="password"
+              className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              value={supabaseJwt}
+              onChange={(e) => setSupabaseJwt(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 

@@ -49,18 +49,30 @@ export default function CaptureButtonOverlay() {
         setToastMessage("Processing with AI...")
         
         // Send to background script
-        chrome.runtime.sendMessage(
-          { action: "process_capture", payload: result },
-          (response) => {
-             if (response?.success) {
-               setToastMessage("Page captured and connected to Nexus!")
-             } else {
-               setToastMessage(`Failed: ${response?.error || "Unknown error"}`)
-             }
-             setShowToast(true)
-             setTimeout(() => setShowToast(false), 3000)
+        try {
+          chrome.runtime.sendMessage(
+            { action: "process_capture", payload: result },
+            (response) => {
+               if (chrome.runtime.lastError) {
+                 setToastMessage("Extension updated. Please refresh the page!")
+               } else if (response?.success) {
+                 setToastMessage("Page captured and connected to Nexus!")
+               } else {
+                 setToastMessage(`Failed: ${response?.error || "Unknown error"}`)
+               }
+               setShowToast(true)
+               setTimeout(() => setShowToast(false), 3000)
+            }
+          )
+        } catch (err: any) {
+          if (err.message?.includes("Extension context invalidated")) {
+             setToastMessage("Extension updated. Please refresh the page!")
+          } else {
+             setToastMessage("Failed to communicate with extension.")
           }
-        )
+          setShowToast(true)
+          setTimeout(() => setShowToast(false), 3000)
+        }
         return // Early return so we don't clear toast immediately below
       }
       

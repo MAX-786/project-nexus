@@ -2,6 +2,8 @@ import { Storage } from "@plasmohq/storage"
 import { createClient } from "@supabase/supabase-js"
 import { generateObject, embed, generateText } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
+import { createAnthropic } from "@ai-sdk/anthropic"
 import { z } from "zod"
 
 import type { CaptureResult } from "~utils/extractor"
@@ -25,34 +27,84 @@ async function getSupabaseClient() {
   const url = process.env.PLASMO_PUBLIC_SUPABASE_URL || ""
   const key = process.env.PLASMO_PUBLIC_SUPABASE_ANON_KEY || ""
   
+  const jwt = (await storage.get("supabase-jwt"))?.trim()
+  
   // Note: RLS will fail if we aren't authenticated.
-  // For the sake of this sprint, we assume valid URL/KEY. 
-  // If RLS fails during testing, the user needs to sign in via the web app, 
-  // capture the token, and send it here.
-  return createClient(url, key)
+  // We pass the JWT as an Authorization header so Supabase treats requests as authenticated.
+  return createClient(url, key, {
+    global: {
+      headers: jwt ? { Authorization: `Bearer ${jwt}` } : {}
+    }
+  })
 }
 
 async function processCapture(result: CaptureResult, sendResponse: (res: any) => void) {
   try {
-    const openaiKey = await storage.get("openai-key")
-    if (!openaiKey) {
-      throw new Error("No OpenAI key configured in Nexus Settings.")
-    }
+    const activeProvider = await storage.get("active-provider") || "openai"
 
     // Temporary workaround: We need a User ID to save to Supabase.
     // In a full implementation, we'd get this from `supabase.auth.getSession()`.
     // We'll try to get it, but if it fails, the insert will fail due to RLS.
     const supabase = await getSupabaseClient()
+    console.log("DEBUG: Supabase client initialized.")
     const { data: { session } } = await supabase.auth.getSession()
+    console.log("DEBUG: Supabase Session:", session ? "Found" : "Not Found")
     
-    // For BYOK / Demo purposes, if no session, we might fail here. 
-    // The web app must handle auth and ideally share it.
+    // For BYOK / Demo purposes, if no session is native to the extension, 
+    // we check if they provided a manual JWT override to determine the User ID.
+    let userId = session?.user?.id
 
-    const openai = createOpenAI({ apiKey: openaiKey })
+    if (!userId) {
+      const jwt = (await storage.get("supabase-jwt"))?.trim()
+      if (jwt) {
+         // Attempt to decode the JWT to extract the userId
+         try {
+           const payload = JSON.parse(atob(jwt.split('.')[1]))
+           userId = payload.sub
+           console.log("DEBUG: Extracted User ID from Storage JWT:", userId)
+         } catch (e) {
+           console.warn("DEBUG: Failed to decode JWT payload.", e)
+         }
+      }
+    }
+
+    let model;
+    let embeddingModel;
+
+    if (activeProvider === "gemini") {
+      const geminiKey = (await storage.get("gemini-key") || "").trim()
+      if (!geminiKey) throw new Error("No Gemini key configured in Nexus Settings.")
+      const google = createGoogleGenerativeAI({ apiKey: geminiKey })
+      model = google("gemini-2.5-flash")
+      embeddingModel = google.embedding("gemini-embedding-001")
+    } else if (activeProvider === "anthropic") {
+      const anthropicKey = (await storage.get("anthropic-key") || "").trim()
+      if (!anthropicKey) throw new Error("No Anthropic key configured in Nexus Settings.")
+      const anthropic = createAnthropic({ apiKey: anthropicKey })
+      model = anthropic("claude-3-5-sonnet-20240620")
+      
+      // Fallback for embeddings
+      const openaiKey = (await storage.get("openai-key") || "").trim()
+      const geminiKey = (await storage.get("gemini-key") || "").trim()
+      if (openaiKey) {
+        embeddingModel = createOpenAI({ apiKey: openaiKey }).embedding("text-embedding-3-small")
+      } else if (geminiKey) {
+        embeddingModel = createGoogleGenerativeAI({ apiKey: geminiKey }).embedding("gemini-embedding-001")
+      } else {
+        throw new Error("Anthropic does not supply an embedding model. Please provide an OpenAI or Gemini key as well for embeddings.")
+      }
+    } else {
+      const openaiKey = (await storage.get("openai-key") || "").trim()
+      if (!openaiKey) throw new Error("No OpenAI key configured in Nexus Settings.")
+      const openai = createOpenAI({ apiKey: openaiKey })
+      model = openai("gpt-4o-mini")
+      embeddingModel = openai.embedding("text-embedding-3-small")
+    }
 
     // 1. Generate Summary & Entities
+    console.log("DEBUG: Starting LLM GenerateObject for summary/entities...")
     const { object } = await generateObject({
-      model: openai("gpt-4o-mini"),
+      model: model,
       schema: z.object({
         summary: z.string().describe("A concise summary of the content, max 3 sentences."),
         entities: z.array(z.object({
@@ -67,21 +119,26 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
     console.log("AI Extraction Complete:", object)
 
     // 2. Generate Embedding for the summary
+    console.log("DEBUG: Starting Text Embedding via provider...")
     const { embedding } = await embed({
-      model: openai.embedding("text-embedding-3-small"),
-      value: object.summary
+      model: embeddingModel,
+      value: object.summary,
+      providerOptions: {
+        google: {
+          outputDimensionality: 1536
+        }
+      }
     })
 
     console.log("Vector Embedding Complete.")
 
-    if (!session?.user?.id) {
-       console.warn("⚠️ No authenticated Supabase session found in extension. RLS policies will likely block insertion. Please login on the web app and ensure tokens are shared.")
-       // If testing without auth, the inserts below will throw errors
+    if (!userId) {
+       console.warn("⚠️ No authenticated Supabase session or JWT found in extension. RLS policies will likely block insertion. Please provide a JWT in Extension Options.")
+       throw new Error("Missing Supabase Auth Token. Please set it in Nexus Settings.")
     }
 
-    const userId = session?.user?.id
-
     // 3. Save Node
+    console.log("DEBUG: Inserting Node into Supabase...")
     const { data: nodeData, error: nodeError } = await supabase
       .from("nodes")
       .insert({
@@ -100,6 +157,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
 
     // 4. Save Entities
     if (object.entities.length > 0) {
+      console.log("DEBUG: Inserting Entities into Supabase...")
       const entitiesToInsert = object.entities.map(e => ({
         user_id: userId,
         name: e.name,
@@ -114,6 +172,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
     }
 
     // 5. Save Review (Spaced Repetition)
+    console.log("DEBUG: Inserting Spaced Repetition Review...")
     // Default next review to 1 day from now
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
@@ -129,6 +188,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
     // 6. Execute Vector Similarity Match mapping using the RPC function 
     // we defined in supabase_setup.sql
     if (userId) {
+       console.log("DEBUG: Executing RPC match_nodes...")
        const { error: matchError } = await supabase.rpc('match_nodes', {
          query_embedding: embedding,
          match_threshold: 0.78, // Cosine similarity threshold (1 - distance)

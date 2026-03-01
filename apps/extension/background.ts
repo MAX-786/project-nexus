@@ -160,6 +160,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
       console.log("DEBUG: Inserting Entities into Supabase...")
       const entitiesToInsert = object.entities.map(e => ({
         user_id: userId,
+        node_id: nodeId,
         name: e.name,
         type: e.type
       }))

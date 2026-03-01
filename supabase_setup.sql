@@ -36,7 +36,8 @@ CREATE TABLE public.nodes (
   title TEXT NOT NULL,
   summary TEXT,
   raw_text TEXT,
-  embedding vector(1536)
+  embedding vector(1536),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.nodes ENABLE ROW LEVEL SECURITY;
@@ -46,6 +47,7 @@ CREATE POLICY "Users can manage own nodes" ON public.nodes FOR ALL USING (auth.u
 CREATE TABLE public.entities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  node_id UUID REFERENCES public.nodes(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   type TEXT NOT NULL
 );
@@ -63,6 +65,9 @@ CREATE TABLE public.edges (
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE
 );
 
+-- Prevent duplicate edges between the same pair of nodes for a user
+CREATE UNIQUE INDEX edges_unique_pair ON public.edges (source_id, target_id, user_id);
+
 ALTER TABLE public.edges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage own edges" ON public.edges FOR ALL USING (auth.uid() = user_id);
 
@@ -73,7 +78,8 @@ CREATE TABLE public.reviews (
   node_id UUID NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
   next_review_date TIMESTAMPTZ NOT NULL,
   interval INTEGER NOT NULL DEFAULT 0,
-  ease_factor FLOAT NOT NULL DEFAULT 2.5
+  ease_factor FLOAT NOT NULL DEFAULT 2.5,
+  last_reviewed_at TIMESTAMPTZ
 );
 
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
@@ -104,7 +110,16 @@ BEGIN
   LOOP
     INSERT INTO public.edges (source_id, target_id, relation_type, weight, user_id)
     VALUES (p_source_node_id, target_node.id, 'semantic_similarity', target_node.similarity, p_user_id)
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT (source_id, target_id, user_id) DO UPDATE SET weight = EXCLUDED.weight;
   END LOOP;
 END;
 $$;
+
+-- ============================================================================
+-- MIGRATION: Run these statements on an EXISTING database to add new columns.
+-- Skip if creating tables fresh (the above CREATE TABLE statements already include them).
+-- ============================================================================
+-- ALTER TABLE public.nodes ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+-- ALTER TABLE public.entities ADD COLUMN IF NOT EXISTS node_id UUID REFERENCES public.nodes(id) ON DELETE CASCADE;
+-- CREATE UNIQUE INDEX IF NOT EXISTS edges_unique_pair ON public.edges (source_id, target_id, user_id);
+-- ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS last_reviewed_at TIMESTAMPTZ;

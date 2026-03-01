@@ -1,8 +1,13 @@
 import Link from 'next/link'
-import { Brain, Sparkles, Network, GraduationCap, ArrowRight, ChevronRight, Lock, Zap } from 'lucide-react'
+import { Brain, Sparkles, Network, GraduationCap, ArrowRight, ChevronRight, Lock, Zap, LayoutDashboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { createClient } from '@/utils/supabase/server'
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isLoggedIn = !!user
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
@@ -15,14 +20,25 @@ export default function LandingPage() {
             <span className="text-lg font-bold tracking-tight">Nexus</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">Sign In</Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="sm" className="gap-1">
-                Get Started <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard">
+                <Button size="sm" className="gap-2">
+                  <LayoutDashboard className="h-3.5 w-3.5" />
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" size="sm">Sign In</Button>
+                </Link>
+                <Link href="/signup">
+                  <Button size="sm" className="gap-1">
+                    Get Started <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -50,11 +66,19 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/signup">
-              <Button size="lg" className="gap-2 px-8 shadow-lg shadow-primary/25">
-                Start for Free <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard">
+                <Button size="lg" className="gap-2 px-8 shadow-lg shadow-primary/25">
+                  Open Dashboard <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/signup">
+                <Button size="lg" className="gap-2 px-8 shadow-lg shadow-primary/25">
+                  Start for Free <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
             <Link href="https://github.com" target="_blank">
               <Button variant="outline" size="lg" className="gap-2 px-8 border-border/50">
                 View on GitHub
@@ -78,16 +102,19 @@ export default function LandingPage() {
             icon={<Zap className="h-6 w-6" />}
             title="AI Capture"
             description="One click captures the page. AI generates a structured summary and extracts key concepts, people, and technologies."
+            step="1"
           />
           <FeatureCard
             icon={<Network className="h-6 w-6" />}
             title="Knowledge Graph"
             description="Pages are automatically linked using semantic similarity. Explore a visual graph of your connected knowledge."
+            step="2"
           />
           <FeatureCard
             icon={<GraduationCap className="h-6 w-6" />}
             title="Spaced Repetition"
             description="Flashcard-style reviews using the SuperMemo-2 algorithm ensure you actually remember what you save."
+            step="3"
           />
         </div>
       </section>
@@ -105,6 +132,7 @@ export default function LandingPage() {
             price="Free"
             description="Open source, BYOK, local or self-hosted."
             features={['Bring your own API keys', 'Local browser storage', 'Full source code access', 'Community support']}
+            isLoggedIn={isLoggedIn}
           />
           <PricingCard
             tier="Nexus Cloud"
@@ -112,12 +140,14 @@ export default function LandingPage() {
             description="BYOK + managed cloud hosting."
             features={['Everything in Hacker', 'Managed Supabase DB', 'Cross-device syncing', 'Automatic backups']}
             highlighted
+            isLoggedIn={isLoggedIn}
           />
           <PricingCard
             tier="Nexus Pro"
             price="$15/mo"
             description="Frictionless. No API keys needed."
             features={['Everything in Cloud', 'Our API keys included', 'Priority features', 'Premium support']}
+            isLoggedIn={isLoggedIn}
           />
         </div>
       </section>
@@ -125,13 +155,17 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="max-w-3xl mx-auto px-6 py-20 text-center">
         <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm p-12">
-          <h2 className="text-2xl font-bold mb-3">Ready to build your second brain?</h2>
+          <h2 className="text-2xl font-bold mb-3">
+            {isLoggedIn ? 'Your second brain is ready.' : 'Ready to build your second brain?'}
+          </h2>
           <p className="text-muted-foreground mb-8">
-            Start capturing knowledge in under 2 minutes.
+            {isLoggedIn
+              ? 'Open the dashboard and start exploring your knowledge graph.'
+              : 'Start capturing knowledge in under 2 minutes.'}
           </p>
-          <Link href="/signup">
+          <Link href={isLoggedIn ? '/dashboard' : '/signup'}>
             <Button size="lg" className="gap-2 px-8 shadow-lg shadow-primary/25">
-              Get Started Free <ArrowRight className="h-4 w-4" />
+              {isLoggedIn ? 'Go to Dashboard' : 'Get Started Free'} <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
         </div>
@@ -154,11 +188,16 @@ export default function LandingPage() {
   )
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeatureCard({ icon, title, description, step }: { icon: React.ReactNode; title: string; description: string; step: string }) {
   return (
     <div className="group rounded-xl border border-border/50 bg-card/50 p-6 hover:border-primary/30 hover:bg-card/80 transition-all duration-300">
-      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:bg-primary/15 transition-colors">
-        {icon}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/15 transition-colors">
+          {icon}
+        </div>
+        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+          {step}
+        </div>
       </div>
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
       <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
@@ -172,12 +211,14 @@ function PricingCard({
   description,
   features,
   highlighted = false,
+  isLoggedIn = false,
 }: {
   tier: string
   price: string
   description: string
   features: string[]
   highlighted?: boolean
+  isLoggedIn?: boolean
 }) {
   return (
     <div className={`rounded-xl border p-6 flex flex-col ${highlighted ? 'border-primary/40 bg-primary/5 shadow-lg shadow-primary/10 relative' : 'border-border/50 bg-card/50'}`}>
@@ -199,9 +240,9 @@ function PricingCard({
           </li>
         ))}
       </ul>
-      <Link href="/signup">
+      <Link href={isLoggedIn ? '/dashboard' : '/signup'}>
         <Button variant={highlighted ? 'default' : 'outline'} className="w-full">
-          Get Started
+          {isLoggedIn ? 'Go to Dashboard' : 'Get Started'}
         </Button>
       </Link>
     </div>

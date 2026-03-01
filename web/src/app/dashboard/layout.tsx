@@ -1,11 +1,12 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Brain, Rss, Network, GraduationCap, LogOut, Sparkles } from 'lucide-react'
+import { Brain, Rss, Network, GraduationCap, LogOut } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
+import NavTab from '@/components/dashboard/nav-tab'
 
 export default async function DashboardLayout({
   children,
@@ -42,7 +43,7 @@ export default async function DashboardLayout({
             </span>
           </Link>
 
-          {/* Navigation Tabs */}
+          {/* Navigation Tabs — uses client NavTab for active state */}
           <nav className="flex items-center gap-1 rounded-xl bg-muted/50 p-1">
             <NavTab href="/dashboard/feed" icon={<Rss className="h-4 w-4" />} label="Feed" />
             <NavTab href="/dashboard/graph" icon={<Network className="h-4 w-4" />} label="Graph" />
@@ -89,14 +90,3 @@ export default async function DashboardLayout({
   )
 }
 
-function NavTab({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-background/60 data-[active]:bg-background data-[active]:text-foreground data-[active]:shadow-sm"
-    >
-      {icon}
-      {label}
-    </Link>
-  )
-}

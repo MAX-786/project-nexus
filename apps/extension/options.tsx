@@ -1,116 +1,226 @@
-import { Storage } from "@plasmohq/storage"
 import { useStorage } from "@plasmohq/storage/hook"
-
-import "./style.css"
 import { useState } from "react"
 
-export const storage = new Storage()
+import "./style.css"
+
+const providers = [
+  { id: "openai", label: "OpenAI", model: "GPT-4o mini" },
+  { id: "gemini", label: "Gemini", model: "2.5 Flash" },
+  { id: "anthropic", label: "Anthropic", model: "Claude 3.5" },
+] as const
 
 function Options() {
   const [openAiKey, setOpenAiKey] = useStorage("openai-key", "")
   const [anthropicKey, setAnthropicKey] = useStorage("anthropic-key", "")
   const [geminiKey, setGeminiKey] = useStorage("gemini-key", "")
   const [activeProvider, setActiveProvider] = useStorage("active-provider", "openai")
-  
-  // Custom BYOK override for the Database Authentication Layer
   const [supabaseJwt, setSupabaseJwt] = useStorage("supabase-jwt", "")
-  
-  const [saved, setSaved] = useState(false)
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
+  // Show/hide key toggles
+  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
+  const toggleShow = (key: string) => setShowKeys(prev => ({ ...prev, [key]: !prev[key] }))
 
   return (
-    <div className="flex flex-col p-8 w-full max-w-2xl mx-auto min-h-screen font-sans text-slate-800">
-      <h1 className="text-3xl font-bold mb-2">Nexus Settings</h1>
-      <p className="text-slate-500 mb-8">
-        Configure your AI models to run directly in your browser. Keys are stored locally and never sent to our servers.
-      </p>
+    <div className="dark">
+      <div className="min-h-screen bg-nexus-bg text-nexus-text font-sans">
+        <div className="max-w-xl mx-auto px-6 py-8">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c5cfc] to-[#a855f7] shadow-lg shadow-[#7c5cfc33]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a9 9 0 0 0-9 9c0 3.6 2.4 6.5 4.5 8.5L12 22l4.5-2.5C18.6 17.5 21 14.6 21 11a9 9 0 0 0-9-9z" />
+                <circle cx="12" cy="11" r="3" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Nexus Settings</h1>
+              <p className="text-xs text-nexus-muted">Your keys stay local · Never sent to our servers</p>
+            </div>
+          </div>
 
-      <div className="flex flex-col gap-2 mb-8 bg-slate-50 p-4 rounded-md border text-sm">
-        <label htmlFor="provider" className="font-semibold text-slate-700">Active AI Provider</label>
-        <select
-          id="provider"
-          className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none w-full max-w-xs bg-white"
-          value={activeProvider}
-          onChange={(e) => setActiveProvider(e.target.value)}
-        >
-          <option value="openai">OpenAI (GPT-4o mini)</option>
-          <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
-          <option value="gemini">Google (Gemini 2.5 Flash)</option>
-        </select>
-        <p className="text-xs text-slate-500 mt-2">
-          Note: Anthropic does not provide native vector embeddings. If Anthropic is selected, you must also provide either an OpenAI or Gemini key to generate the embeddings.
-        </p>
-      </div>
+          {/* Provider Selector */}
+          <section className="mt-8">
+            <label className="text-xs font-semibold uppercase tracking-wider text-nexus-muted mb-3 block">
+              AI Provider
+            </label>
+            <div className="flex gap-2 p-1 bg-nexus-card rounded-xl border border-nexus-border">
+              {providers.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setActiveProvider(p.id)}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                    activeProvider === p.id
+                      ? "bg-nexus-primary text-white shadow-md shadow-nexus-primary/25"
+                      : "text-nexus-muted hover:text-nexus-text hover:bg-nexus-border/50"
+                  }`}
+                >
+                  <span className="block font-semibold">{p.label}</span>
+                  <span className="block text-[10px] opacity-70 mt-0.5">{p.model}</span>
+                </button>
+              ))}
+            </div>
+            {activeProvider === "anthropic" && (
+              <p className="text-[11px] text-nexus-muted mt-2 pl-1">
+                ⚠ Anthropic has no embedding model. Add an OpenAI or Gemini key too for vector search.
+              </p>
+            )}
+          </section>
 
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="openai" className="font-semibold">OpenAI API Key</label>
-          <input
-            id="openai"
-            type="password"
-            className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="sk-..."
-            value={openAiKey}
-            onChange={(e) => setOpenAiKey(e.target.value)}
-          />
-        </div>
+          {/* API Keys */}
+          <section className="mt-8 space-y-4">
+            <label className="text-xs font-semibold uppercase tracking-wider text-nexus-muted block">
+              API Keys
+            </label>
 
-        <div className="flex flex-col gap-2">
-          <label htmlFor="anthropic" className="font-semibold">Anthropic API Key</label>
-          <input
-            id="anthropic"
-            type="password"
-            className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="sk-ant-..."
-            value={anthropicKey}
-            onChange={(e) => setAnthropicKey(e.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label htmlFor="gemini" className="font-semibold">Gemini API Key</label>
-          <input
-            id="gemini"
-            type="password"
-            className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-            placeholder="AI..."
-            value={geminiKey}
-            onChange={(e) => setGeminiKey(e.target.value)}
-          />
-        </div>
-
-        <div className="my-4 border-t pt-6">
-          <h2 className="text-xl font-bold mb-2">Remote Access Token</h2>
-          <p className="text-sm text-slate-500 mb-4">
-             To save captures to your secure database, you must provide your authenticated JWT token. 
-             You can find this running `console.log(await supabase.auth.getSession())` in the web app.
-          </p>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="jwt" className="font-semibold">Supabase JWT Auth Token</label>
-            <input
-              id="jwt"
-              type="password"
-              className="border p-2 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-              value={supabaseJwt}
-              onChange={(e) => setSupabaseJwt(e.target.value)}
+            <KeyInput
+              id="openai"
+              label="OpenAI"
+              placeholder="sk-..."
+              value={openAiKey}
+              onChange={setOpenAiKey}
+              show={showKeys["openai"]}
+              onToggle={() => toggleShow("openai")}
+              active={activeProvider === "openai"}
             />
+
+            <KeyInput
+              id="gemini"
+              label="Gemini"
+              placeholder="AI..."
+              value={geminiKey}
+              onChange={setGeminiKey}
+              show={showKeys["gemini"]}
+              onToggle={() => toggleShow("gemini")}
+              active={activeProvider === "gemini"}
+            />
+
+            <KeyInput
+              id="anthropic"
+              label="Anthropic"
+              placeholder="sk-ant-..."
+              value={anthropicKey}
+              onChange={setAnthropicKey}
+              show={showKeys["anthropic"]}
+              onToggle={() => toggleShow("anthropic")}
+              active={activeProvider === "anthropic"}
+            />
+          </section>
+
+          {/* JWT Section */}
+          <section className="mt-8 pt-6 border-t border-nexus-border">
+            <div className="flex items-center gap-2 mb-1">
+              <label className="text-xs font-semibold uppercase tracking-wider text-nexus-muted">
+                Database Auth Token
+              </label>
+              <span className="text-[10px] bg-nexus-primary/15 text-nexus-primary px-1.5 py-0.5 rounded font-medium">
+                Required
+              </span>
+            </div>
+            <p className="text-[11px] text-nexus-muted mb-3">
+              Go to your{" "}
+              <a
+                href={`${process.env.PLASMO_PUBLIC_SITE_URL || "http://localhost:3000"}/api/jwt`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-nexus-primary hover:underline"
+              >
+                Nexus web app → /api/jwt
+              </a>
+              {" "}and copy the token.
+            </p>
+            <div className="relative">
+              <input
+                id="jwt"
+                type={showKeys["jwt"] ? "text" : "password"}
+                className="w-full bg-nexus-card border border-nexus-border rounded-lg px-3 py-2.5 text-sm text-nexus-text placeholder:text-nexus-muted/50 focus:outline-none focus:ring-2 focus:ring-nexus-primary/50 focus:border-nexus-primary/50 transition-all font-mono text-xs"
+                placeholder="eyJhbGciOiJIUzI1NiIs..."
+                value={supabaseJwt}
+                onChange={(e) => setSupabaseJwt(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => toggleShow("jwt")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nexus-muted hover:text-nexus-text transition-colors"
+              >
+                {showKeys["jwt"] ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                )}
+              </button>
+            </div>
+          </section>
+
+          {/* Status bar */}
+          <div className="mt-8 flex items-center gap-2 text-[11px] text-nexus-muted">
+            <div className="h-1.5 w-1.5 rounded-full bg-nexus-success animate-pulse" />
+            Settings auto-save as you type
           </div>
         </div>
       </div>
+    </div>
+  )
+}
 
-      <div className="mt-8 flex items-center gap-4">
+function KeyInput({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  show,
+  onToggle,
+  active,
+}: {
+  id: string
+  label: string
+  placeholder: string
+  value: string
+  onChange: (v: string) => void
+  show: boolean
+  onToggle: () => void
+  active: boolean
+}) {
+  return (
+    <div className={`rounded-xl border p-3 transition-colors ${
+      active ? "border-nexus-primary/40 bg-nexus-primary/5" : "border-nexus-border bg-nexus-card"
+    }`}>
+      <div className="flex items-center justify-between mb-2">
+        <label htmlFor={id} className="text-xs font-medium flex items-center gap-2">
+          {label}
+          {active && (
+            <span className="text-[10px] bg-nexus-primary/20 text-nexus-primary px-1.5 py-0.5 rounded font-medium">
+              Active
+            </span>
+          )}
+        </label>
+        {value && (
+          <span className="text-[10px] text-nexus-success flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-nexus-success" />
+            Saved
+          </span>
+        )}
+      </div>
+      <div className="relative">
+        <input
+          id={id}
+          type={show ? "text" : "password"}
+          className="w-full bg-nexus-bg/50 border border-nexus-border/60 rounded-lg px-3 py-2 text-xs text-nexus-text placeholder:text-nexus-muted/50 focus:outline-none focus:ring-2 focus:ring-nexus-primary/40 transition-all font-mono"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
         <button
-          onClick={handleSave}
-          className="bg-black text-white px-4 py-2 rounded-md font-medium hover:bg-slate-800 transition-colors"
+          type="button"
+          onClick={onToggle}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nexus-muted hover:text-nexus-text transition-colors"
         >
-          Save Keys
+          {show ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          )}
         </button>
-        {saved && <span className="text-green-600 font-medium">Saved securely!</span>}
       </div>
     </div>
   )

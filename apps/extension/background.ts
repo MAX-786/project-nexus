@@ -1,6 +1,6 @@
 import { Storage } from "@plasmohq/storage"
 import { createClient } from "@supabase/supabase-js"
-import { generateObject, embed, generateText } from "ai"
+import { generateObject, embed } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { createAnthropic } from "@ai-sdk/anthropic"
@@ -10,27 +10,12 @@ import type { CaptureResult } from "~utils/extractor"
 
 const storage = new Storage()
 
-// Since the user might not be signed into the extension identically as the web app,
-// the simplest BYOK BYO-DB architecture for the extension right now is to prompt
-// for Supabase credentials explicitly in options, OR use a universal backend endpoint.
-// We'll initialize it dynamically when processing.
-
 async function getSupabaseClient() {
-  // In a real production BYOK app, you'd securely sync the web's auth token to the extension 
-  // via messaging or storage (if on same domain).
-  // For this prototype, we'll assume the user has set SUPABASE_URL and SUPABASE_ANON_KEY 
-  // in their extension options, or we hardcode the public ones for now and rely on a 
-  // passed-in JWT (not implemented in UI yet).
-  // To keep it simple for the agent test: We'll use the environment variables if available 
-  // (requires building with them) but we must pass the user's specific access_token.
-  
   const url = process.env.PLASMO_PUBLIC_SUPABASE_URL || ""
   const key = process.env.PLASMO_PUBLIC_SUPABASE_ANON_KEY || ""
   
   const jwt = (await storage.get("supabase-jwt"))?.trim()
   
-  // Note: RLS will fail if we aren't authenticated.
-  // We pass the JWT as an Authorization header so Supabase treats requests as authenticated.
   return createClient(url, key, {
     global: {
       headers: jwt ? { Authorization: `Bearer ${jwt}` } : {}
@@ -38,73 +23,89 @@ async function getSupabaseClient() {
   })
 }
 
+async function getUserId(supabase: any): Promise<string> {
+  // Try native session first
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.user?.id) return session.user.id
+
+  // Fallback: decode JWT from storage
+  const jwt = (await storage.get("supabase-jwt"))?.trim()
+  if (jwt) {
+    try {
+      const payload = JSON.parse(atob(jwt.split('.')[1]))
+      if (payload.sub) return payload.sub
+    } catch (e) {
+      console.warn("Failed to decode JWT payload.", e)
+    }
+  }
+
+  throw new Error("Missing Supabase Auth Token. Please set it in Nexus Settings.")
+}
+
+function getModels(activeProvider: string, keys: { openai: string; gemini: string; anthropic: string }) {
+  let model: any
+  let embeddingModel: any
+
+  if (activeProvider === "gemini") {
+    if (!keys.gemini) throw new Error("No Gemini key configured in Nexus Settings.")
+    const google = createGoogleGenerativeAI({ apiKey: keys.gemini })
+    model = google("gemini-2.5-flash")
+    embeddingModel = google.embedding("gemini-embedding-001")
+  } else if (activeProvider === "anthropic") {
+    if (!keys.anthropic) throw new Error("No Anthropic key configured in Nexus Settings.")
+    model = createAnthropic({ apiKey: keys.anthropic })("claude-3-5-sonnet-20240620")
+    
+    // Anthropic has no embedding model — fallback to OpenAI or Gemini
+    if (keys.openai) {
+      embeddingModel = createOpenAI({ apiKey: keys.openai }).embedding("text-embedding-3-small")
+    } else if (keys.gemini) {
+      embeddingModel = createGoogleGenerativeAI({ apiKey: keys.gemini }).embedding("gemini-embedding-001")
+    } else {
+      throw new Error("Anthropic doesn't provide embeddings. Please also add an OpenAI or Gemini key.")
+    }
+  } else {
+    if (!keys.openai) throw new Error("No OpenAI key configured in Nexus Settings.")
+    const openai = createOpenAI({ apiKey: keys.openai })
+    model = openai("gpt-4o-mini")
+    // text-embedding-3-small outputs 1536 dimensions — matches our pgvector column
+    embeddingModel = openai.embedding("text-embedding-3-small")
+  }
+
+  return { model, embeddingModel }
+}
+
 async function processCapture(result: CaptureResult, sendResponse: (res: any) => void) {
   try {
-    const activeProvider = await storage.get("active-provider") || "openai"
-
-    // Temporary workaround: We need a User ID to save to Supabase.
-    // In a full implementation, we'd get this from `supabase.auth.getSession()`.
-    // We'll try to get it, but if it fails, the insert will fail due to RLS.
+    // --- Auth ---
     const supabase = await getSupabaseClient()
-    console.log("DEBUG: Supabase client initialized.")
-    const { data: { session } } = await supabase.auth.getSession()
-    console.log("DEBUG: Supabase Session:", session ? "Found" : "Not Found")
-    
-    // For BYOK / Demo purposes, if no session is native to the extension, 
-    // we check if they provided a manual JWT override to determine the User ID.
-    let userId = session?.user?.id
+    const userId = await getUserId(supabase)
 
-    if (!userId) {
-      const jwt = (await storage.get("supabase-jwt"))?.trim()
-      if (jwt) {
-         // Attempt to decode the JWT to extract the userId
-         try {
-           const payload = JSON.parse(atob(jwt.split('.')[1]))
-           userId = payload.sub
-           console.log("DEBUG: Extracted User ID from Storage JWT:", userId)
-         } catch (e) {
-           console.warn("DEBUG: Failed to decode JWT payload.", e)
-         }
-      }
+    // --- Duplicate Guard ---
+    const { data: existing } = await supabase
+      .from("nodes")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("url", result.url)
+      .maybeSingle()
+
+    if (existing) {
+      sendResponse({ success: false, error: "This page has already been captured." })
+      return
     }
 
-    let model;
-    let embeddingModel;
-
-    if (activeProvider === "gemini") {
-      const geminiKey = (await storage.get("gemini-key") || "").trim()
-      if (!geminiKey) throw new Error("No Gemini key configured in Nexus Settings.")
-      const google = createGoogleGenerativeAI({ apiKey: geminiKey })
-      model = google("gemini-2.5-flash")
-      embeddingModel = google.embedding("gemini-embedding-001")
-    } else if (activeProvider === "anthropic") {
-      const anthropicKey = (await storage.get("anthropic-key") || "").trim()
-      if (!anthropicKey) throw new Error("No Anthropic key configured in Nexus Settings.")
-      const anthropic = createAnthropic({ apiKey: anthropicKey })
-      model = anthropic("claude-3-5-sonnet-20240620")
-      
-      // Fallback for embeddings
-      const openaiKey = (await storage.get("openai-key") || "").trim()
-      const geminiKey = (await storage.get("gemini-key") || "").trim()
-      if (openaiKey) {
-        embeddingModel = createOpenAI({ apiKey: openaiKey }).embedding("text-embedding-3-small")
-      } else if (geminiKey) {
-        embeddingModel = createGoogleGenerativeAI({ apiKey: geminiKey }).embedding("gemini-embedding-001")
-      } else {
-        throw new Error("Anthropic does not supply an embedding model. Please provide an OpenAI or Gemini key as well for embeddings.")
-      }
-    } else {
-      const openaiKey = (await storage.get("openai-key") || "").trim()
-      if (!openaiKey) throw new Error("No OpenAI key configured in Nexus Settings.")
-      const openai = createOpenAI({ apiKey: openaiKey })
-      model = openai("gpt-4o-mini")
-      embeddingModel = openai.embedding("text-embedding-3-small")
+    // --- Provider & Models ---
+    const activeProvider = await storage.get("active-provider") || "openai"
+    const keys = {
+      openai: ((await storage.get("openai-key")) || "").trim(),
+      gemini: ((await storage.get("gemini-key")) || "").trim(),
+      anthropic: ((await storage.get("anthropic-key")) || "").trim(),
     }
+    const { model, embeddingModel } = getModels(activeProvider, keys)
 
-    // 1. Generate Summary & Entities
-    console.log("DEBUG: Starting LLM GenerateObject for summary/entities...")
+    // --- Step 1: AI Summary & Entity Extraction ---
+    console.log("[Nexus] Generating summary & entities...")
     const { object } = await generateObject({
-      model: model,
+      model,
       schema: z.object({
         summary: z.string().describe("A concise summary of the content, max 3 sentences."),
         entities: z.array(z.object({
@@ -112,73 +113,62 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
           type: z.string()
         })).describe("Key concepts, people, or deeply technical terms found in the text.")
       }),
-      prompt: `Analyze the following webpage content.\nTitle: ${result.title}\nURL: ${result.url}\n\nContent:\n${result.text.substring(0, 15000)}` 
-      // substring to avoid context limit blasts for now
+      prompt: `Analyze the following webpage content.\nTitle: ${result.title}\nURL: ${result.url}\n\nContent:\n${result.text.substring(0, 15000)}`
     })
+    console.log("[Nexus] AI extraction complete:", object.entities.length, "entities found")
 
-    console.log("AI Extraction Complete:", object)
-
-    // 2. Generate Embedding for the summary
-    console.log("DEBUG: Starting Text Embedding via provider...")
+    // --- Step 2: Embedding ---
+    console.log("[Nexus] Generating embedding...")
     const { embedding } = await embed({
       model: embeddingModel,
       value: object.summary,
       providerOptions: {
-        google: {
-          outputDimensionality: 1536
-        }
+        google: { outputDimensionality: 1536 }
       }
     })
 
-    console.log("Vector Embedding Complete.")
-
-    if (!userId) {
-       console.warn("⚠️ No authenticated Supabase session or JWT found in extension. RLS policies will likely block insertion. Please provide a JWT in Extension Options.")
-       throw new Error("Missing Supabase Auth Token. Please set it in Nexus Settings.")
-    }
-
-    // 3. Save Node
-    console.log("DEBUG: Inserting Node into Supabase...")
+    // --- Step 3: Save Node ---
+    console.log("[Nexus] Saving node...")
     const { data: nodeData, error: nodeError } = await supabase
       .from("nodes")
       .insert({
-        user_id: userId, // WARNING: Will be undefined if no session
+        user_id: userId,
         url: result.url,
         title: result.title,
         summary: object.summary,
-        raw_text: result.text.substring(0, 5000), // Keep a snapshot
-        embedding: embedding
+        raw_text: result.text.substring(0, 5000),
+        embedding,
+        created_at: new Date().toISOString()
       })
       .select('id')
       .single()
 
-    if (nodeError) throw nodeError
+    if (nodeError) throw new Error(`Node save failed: ${nodeError.message}`)
     const nodeId = nodeData.id
 
-    // 4. Save Entities
+    // --- Step 4: Save Entities ---
     if (object.entities.length > 0) {
-      console.log("DEBUG: Inserting Entities into Supabase...")
-      const entitiesToInsert = object.entities.map(e => ({
-        user_id: userId,
-        node_id: nodeId,
-        name: e.name,
-        type: e.type
-      }))
-      
+      console.log("[Nexus] Saving", object.entities.length, "entities...")
       const { error: entityError } = await supabase
         .from("entities")
-        .insert(entitiesToInsert)
-      
-      if (entityError) console.error("Entity Insert Error:", entityError)
+        .insert(object.entities.map(e => ({
+          user_id: userId,
+          node_id: nodeId,
+          name: e.name,
+          type: e.type
+        })))
+
+      if (entityError) {
+        console.error("[Nexus] Entity save error (non-fatal):", entityError.message)
+      }
     }
 
-    // 5. Save Review (Spaced Repetition)
-    console.log("DEBUG: Inserting Spaced Repetition Review...")
-    // Default next review to 1 day from now
+    // --- Step 5: Create Spaced Repetition Review ---
+    console.log("[Nexus] Creating review entry...")
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
-    
-    await supabase.from("reviews").insert({
+
+    const { error: reviewError } = await supabase.from("reviews").insert({
       user_id: userId,
       node_id: nodeId,
       next_review_date: tomorrow.toISOString(),
@@ -186,30 +176,45 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
       ease_factor: 2.5
     })
 
-    // 6. Execute Vector Similarity Match mapping using the RPC function 
-    // we defined in supabase_setup.sql
-    if (userId) {
-       console.log("DEBUG: Executing RPC match_nodes...")
-       const { error: matchError } = await supabase.rpc('match_nodes', {
-         query_embedding: embedding,
-         match_threshold: 0.78, // Cosine similarity threshold (1 - distance)
-         match_count: 5,
-         p_user_id: userId,
-         p_source_node_id: nodeId
-       })
-       
-       if (matchError) {
-         console.error("RPC match_nodes error:", matchError)
-       } else {
-         console.log("Auto-linking complete.")
-       }
+    if (reviewError) {
+      console.error("[Nexus] Review save error (non-fatal):", reviewError.message)
     }
 
+    // --- Step 6: Auto-link via Vector Similarity ---
+    console.log("[Nexus] Auto-linking via vector similarity...")
+    const { error: matchError } = await supabase.rpc('match_nodes', {
+      query_embedding: embedding,
+      match_threshold: 0.78,
+      match_count: 5,
+      p_user_id: userId,
+      p_source_node_id: nodeId
+    })
+
+    if (matchError) {
+      console.error("[Nexus] Auto-link error (non-fatal):", matchError.message)
+    }
+
+    console.log("[Nexus] ✓ Capture complete!")
     sendResponse({ success: true, summary: object.summary })
 
   } catch (err: any) {
-    console.error("Background processing error:", err)
-    sendResponse({ success: false, error: err.message })
+    console.error("[Nexus] Capture failed:", err.message)
+
+    // Detect JWT expiration and clear the stored token
+    const msg = err.message || ""
+    const isJwtExpired = msg.includes("JWT expired") || msg.includes("Invalid JWT") || msg.includes("invalid claim: exp")
+
+    if (isJwtExpired) {
+      await storage.remove("supabase-jwt")
+      console.warn("[Nexus] JWT expired — cleared stored token.")
+      sendResponse({
+        success: false,
+        error: "Your auth token has expired. Please get a fresh token from the Nexus web app.",
+        code: "jwt_expired"
+      })
+    } else {
+      sendResponse({ success: false, error: msg })
+    }
   }
 }
 
@@ -217,6 +222,6 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "process_capture" && message.payload) {
     processCapture(message.payload, sendResponse)
-    return true // indicates we will send response asynchronously
+    return true // async response
   }
 })

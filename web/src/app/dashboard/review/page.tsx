@@ -1,22 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import ReviewCards from '@/components/dashboard/review-cards'
 import { GraduationCap, CheckCircle2, Inbox } from 'lucide-react'
-
-type ReviewWithNode = {
-  id: string
-  user_id: string
-  node_id: string
-  next_review_date: string
-  interval: number
-  ease_factor: number
-  last_reviewed_at: string | null
-  node: {
-    id: string
-    title: string
-    summary: string
-    url: string
-  }
-}
+import type { ReviewWithNode } from '@/lib/types'
 
 export default async function ReviewPage() {
   const supabase = await createClient()

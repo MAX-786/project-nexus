@@ -1,13 +1,45 @@
-import { login } from './actions'
-import Link from 'next/link'
-import { Brain, ArrowRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+'use client'
 
-export default async function LoginPage(props: {
-  searchParams: Promise<{ message: string }>
-}) {
-  const searchParams = await props.searchParams
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Brain, ArrowRight, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { toast } from 'sonner'
+import { createClient } from '@/utils/supabase/client'
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    const formData = new FormData(e.currentTarget)
+    const email = (formData.get('email') as string).trim()
+    const password = formData.get('password') as string
+
+    if (!email || !password) {
+      toast.error('Please fill in all fields.')
+      setIsLoading(false)
+      return
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+    if (error) {
+      toast.error(error.message)
+      setIsLoading(false)
+      return
+    }
+
+    toast.success('Signed in successfully!')
+    router.push('/dashboard')
+    router.refresh()
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
@@ -29,7 +61,7 @@ export default async function LoginPage(props: {
         {/* Form Card */}
         <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/10">
           <CardContent className="pt-6">
-            <form className="space-y-4" action={login}>
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="text-sm font-medium" htmlFor="email">
                   Email
@@ -42,6 +74,7 @@ export default async function LoginPage(props: {
                   placeholder="you@example.com"
                   required
                   autoComplete="email"
+                  disabled={isLoading}
                 />
               </div>
 
@@ -57,18 +90,22 @@ export default async function LoginPage(props: {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
+                  disabled={isLoading}
                 />
               </div>
 
-              <Button type="submit" className="w-full gap-2">
-                Sign In <ArrowRight className="h-4 w-4" />
+              <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Signing in…
+                  </>
+                ) : (
+                  <>
+                    Sign In <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </Button>
-
-              {searchParams?.message && (
-                <p className="p-3 bg-destructive/10 text-destructive text-sm text-center rounded-lg border border-destructive/20">
-                  {searchParams.message}
-                </p>
-              )}
             </form>
           </CardContent>
         </Card>

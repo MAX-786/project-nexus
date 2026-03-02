@@ -17,21 +17,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 
-type ReviewWithNode = {
-  id: string
-  user_id: string
-  node_id: string
-  next_review_date: string
-  interval: number
-  ease_factor: number
-  last_reviewed_at: string | null
-  node: {
-    id: string
-    title: string
-    summary: string
-    url: string
-  }
-}
+import type { ReviewWithNode } from '@/lib/types'
 
 interface ReviewCardsProps {
   reviews: ReviewWithNode[]

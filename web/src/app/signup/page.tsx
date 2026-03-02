@@ -1,13 +1,56 @@
-import { signup } from '@/app/login/actions'
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
-import { Brain, ArrowRight, Sparkles } from 'lucide-react'
+import { Brain, ArrowRight, Sparkles, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { toast } from 'sonner'
+import { createClient } from '@/utils/supabase/client'
 
-export default async function SignupPage(props: {
-  searchParams: Promise<{ message: string }>
-}) {
-  const searchParams = await props.searchParams
+export default function SignupPage() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    const formData = new FormData(e.currentTarget)
+    const email = (formData.get('email') as string).trim()
+    const password = formData.get('password') as string
+
+    if (!email || !password) {
+      toast.error('Please fill in all fields.')
+      setIsLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters.')
+      setIsLoading(false)
+      return
+    }
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      toast.error(error.message)
+      setIsLoading(false)
+      return
+    }
+
+    setIsSuccess(true)
+    toast.success('Check your email to confirm your account!')
+    setIsLoading(false)
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
@@ -29,54 +72,82 @@ export default async function SignupPage(props: {
           </p>
         </div>
 
-        {/* Form Card */}
-        <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/10">
-          <CardContent className="pt-6">
-            <form className="space-y-4" action={signup}>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  className="flex h-10 w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-colors"
-                  type="email"
-                  name="email"
-                  placeholder="you@example.com"
-                  required
-                  autoComplete="email"
-                />
+        {/* Success State */}
+        {isSuccess ? (
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/10">
+            <CardContent className="pt-6 text-center space-y-4">
+              <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto">
+                <Sparkles className="h-7 w-7 text-emerald-500" />
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="password">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  className="flex h-10 w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-colors"
-                  type="password"
-                  name="password"
-                  placeholder="••••••••"
-                  required
-                  autoComplete="new-password"
-                  minLength={6}
-                />
-                <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
-              </div>
-
-              <Button type="submit" className="w-full gap-2">
-                Create Account <ArrowRight className="h-4 w-4" />
-              </Button>
-
-              {searchParams?.message && (
-                <p className="p-3 bg-destructive/10 text-destructive text-sm text-center rounded-lg border border-destructive/20">
-                  {searchParams.message}
+              <div>
+                <h2 className="text-lg font-semibold">Check your email</h2>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                  We&apos;ve sent a confirmation link to your email address.
+                  Click it to activate your Nexus account.
                 </p>
-              )}
-            </form>
-          </CardContent>
-        </Card>
+              </div>
+              <Link href="/login">
+                <Button variant="outline" className="w-full gap-2 mt-2">
+                  Go to Sign In <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          /* Form Card */
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/10">
+            <CardContent className="pt-6">
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="email">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    className="flex h-10 w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-colors"
+                    type="email"
+                    name="email"
+                    placeholder="you@example.com"
+                    required
+                    autoComplete="email"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="password">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    className="flex h-10 w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-colors"
+                    type="password"
+                    name="password"
+                    placeholder="••••••••"
+                    required
+                    autoComplete="new-password"
+                    minLength={6}
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+                </div>
+
+                <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating account…
+                    </>
+                  ) : (
+                    <>
+                      Create Account <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
         <p className="text-sm text-center text-muted-foreground mt-6">
           Already have an account?{' '}

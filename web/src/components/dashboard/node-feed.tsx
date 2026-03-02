@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,39 +20,18 @@ import {
   Link as LinkIcon,
   Network,
   FileText,
+  Search,
+  Trash2,
+  Loader2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
-type DBNode = {
-  id: string
-  user_id: string
-  url: string
-  title: string
-  summary: string
-  raw_text: string
-  created_at: string
-}
+import { useNodesStore, useFilteredNodes } from '@/stores/nodes-store'
+import { useUIStore } from '@/stores/ui-store'
+import { deleteNode } from '@/app/dashboard/feed/actions'
+import type { DBNode } from '@/lib/types'
 
-type DBEntity = {
-  id: string
-  name: string
-  type: string
-  user_id: string
-  node_id: string | null
-}
-
-type DBEdge = {
-  id: string
-  source_id: string
-  target_id: string
-  relation_type: string
-  weight: number
-}
-
-interface NodeFeedProps {
-  nodes: DBNode[]
-  entities: DBEntity[]
-  edges: DBEdge[]
-}
+// ---- Helpers ----
 
 function formatRelativeTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
@@ -104,21 +83,55 @@ function getEntityColor(type: string): string {
   return entityTypeColors[type.toLowerCase()] ?? 'bg-primary/10 text-primary border-primary/20'
 }
 
-export default function NodeFeed({ nodes, entities, edges }: NodeFeedProps) {
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const selectedNode = nodes.find(n => n.id === selectedNodeId) ?? null
+// ---- Component ----
 
-  const nodeEntities = (nodeId: string) => entities.filter(e => e.node_id === nodeId)
+export default function NodeFeed() {
+  const nodes = useNodesStore((s) => s.nodes)
+  const entities = useNodesStore((s) => s.entities)
+  const edges = useNodesStore((s) => s.edges)
+  const searchQuery = useNodesStore((s) => s.searchQuery)
+  const setSearchQuery = useNodesStore((s) => s.setSearchQuery)
+  const removeNodeFromStore = useNodesStore((s) => s.removeNode)
+
+  const selectedNodeId = useUIStore((s) => s.selectedNodeId)
+  const setSelectedNodeId = useUIStore((s) => s.setSelectedNodeId)
+
+  const filteredNodes = useFilteredNodes()
+  const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
+
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  const nodeEntities = (nodeId: string) => entities.filter((e) => e.node_id === nodeId)
   const connectionCount = (nodeId: string) =>
-    edges.filter(e => e.source_id === nodeId || e.target_id === nodeId).length
+    edges.filter((e) => e.source_id === nodeId || e.target_id === nodeId).length
 
   const connectedNodes = selectedNode
     ? edges
-        .filter(e => e.source_id === selectedNode.id || e.target_id === selectedNode.id)
-        .map(e => e.source_id === selectedNode.id ? e.target_id : e.source_id)
-        .map(id => nodes.find(n => n.id === id))
+        .filter((e) => e.source_id === selectedNode.id || e.target_id === selectedNode.id)
+        .map((e) => (e.source_id === selectedNode.id ? e.target_id : e.source_id))
+        .map((id) => nodes.find((n) => n.id === id))
         .filter((n): n is DBNode => !!n)
     : []
+
+  const handleDelete = (nodeId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setDeletingId(nodeId)
+
+    startTransition(async () => {
+      const result = await deleteNode(nodeId)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        removeNodeFromStore(nodeId)
+        toast.success('Node deleted successfully')
+        if (selectedNodeId === nodeId) {
+          setSelectedNodeId(null)
+        }
+      }
+      setDeletingId(null)
+    })
+  }
 
   if (nodes.length === 0) {
     return (
@@ -136,74 +149,114 @@ export default function NodeFeed({ nodes, entities, edges }: NodeFeedProps) {
 
   return (
     <>
-      {/* Feed header */}
-      <div className="px-6 py-4 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Knowledge Feed</h2>
+      {/* Feed header + search */}
+      <div className="px-6 py-4 border-b border-border/50 shrink-0 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Knowledge Feed</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {nodes.length} {nodes.length === 1 ? 'memory' : 'memories'} captured
+              {searchQuery && ` · ${filteredNodes.length} matching`}
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          {nodes.length} {nodes.length === 1 ? 'memory' : 'memories'} captured
-        </p>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            className="flex h-9 w-full rounded-lg border border-border/50 bg-background/50 pl-9 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-colors"
+            placeholder="Search by title, summary, or entity…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
-      {/* Scrollable card list — native div, no Radix */}
+      {/* Scrollable card list */}
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="p-6 flex flex-col gap-4">
-          {nodes.map((node) => {
-            const ne = nodeEntities(node.id)
-            const cc = connectionCount(node.id)
-            return (
-              <Card
-                key={node.id}
-                className="group cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
-                onClick={() => setSelectedNodeId(node.id)}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                        {node.title}
-                      </CardTitle>
-                      <CardDescription className="mt-1.5 flex items-center gap-1.5 text-xs">
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{getDomain(node.url)}</span>
-                      </CardDescription>
+          {filteredNodes.length === 0 && searchQuery ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
+              <Search className="h-8 w-8 text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">No results for &quot;{searchQuery}&quot;</p>
+            </div>
+          ) : (
+            filteredNodes.map((node) => {
+              const ne = nodeEntities(node.id)
+              const cc = connectionCount(node.id)
+              const isDeleting = deletingId === node.id
+              return (
+                <Card
+                  key={node.id}
+                  className="group cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
+                  onClick={() => setSelectedNodeId(node.id)}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                          {node.title}
+                        </CardTitle>
+                        <CardDescription className="mt-1.5 flex items-center gap-1.5 text-xs">
+                          <ExternalLink className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{getDomain(node.url)}</span>
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatRelativeTime(node.created_at)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                          onClick={(e) => handleDelete(node.id, e)}
+                          disabled={isDeleting}
+                          title="Delete node"
+                        >
+                          {isDeleting ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                      <Clock className="h-3 w-3" />
-                      {formatRelativeTime(node.created_at)}
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                      {node.summary}
+                    </p>
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
+                      {ne.slice(0, 3).map((entity) => (
+                        <Badge
+                          key={entity.id}
+                          variant="secondary"
+                          className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20"
+                        >
+                          <Tag className="h-2.5 w-2.5 mr-1" />
+                          {entity.name}
+                        </Badge>
+                      ))}
+                      {ne.length > 3 && (
+                        <span className="text-xs text-muted-foreground">+{ne.length - 3} more</span>
+                      )}
+                      {cc > 0 && (
+                        <span className="text-xs text-muted-foreground ml-auto">
+                          {cc} {cc === 1 ? 'link' : 'links'}
+                        </span>
+                      )}
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pb-3">
-                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                    {node.summary}
-                  </p>
-                  <div className="mt-3 flex items-center gap-2 flex-wrap">
-                    {ne.slice(0, 3).map((entity) => (
-                      <Badge
-                        key={entity.id}
-                        variant="secondary"
-                        className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20"
-                      >
-                        <Tag className="h-2.5 w-2.5 mr-1" />
-                        {entity.name}
-                      </Badge>
-                    ))}
-                    {ne.length > 3 && (
-                      <span className="text-xs text-muted-foreground">+{ne.length - 3} more</span>
-                    )}
-                    {cc > 0 && (
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {cc} {cc === 1 ? 'link' : 'links'}
-                      </span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+                  </CardContent>
+                </Card>
+              )
+            })
+          )}
         </div>
       </div>
 
@@ -253,7 +306,7 @@ export default function NodeFeed({ nodes, entities, edges }: NodeFeedProps) {
                   </h3>
                   {nodeEntities(selectedNode.id).length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {nodeEntities(selectedNode.id).map(entity => (
+                      {nodeEntities(selectedNode.id).map((entity) => (
                         <Badge
                           key={entity.id}
                           variant="outline"
@@ -277,7 +330,7 @@ export default function NodeFeed({ nodes, entities, edges }: NodeFeedProps) {
                   </h3>
                   {connectedNodes.length > 0 ? (
                     <div className="space-y-2">
-                      {connectedNodes.map(cn => (
+                      {connectedNodes.map((cn) => (
                         <div
                           key={cn.id}
                           className="flex items-center gap-3 rounded-lg bg-muted/50 border border-border/30 p-3 text-sm hover:border-primary/30 transition-colors cursor-pointer"
@@ -308,11 +361,26 @@ export default function NodeFeed({ nodes, entities, edges }: NodeFeedProps) {
                   </div>
                 </section>
 
-                <Button variant="outline" className="w-full gap-2 border-border/50 hover:border-primary/30" asChild>
-                  <a href={selectedNode.url} target="_blank" rel="noreferrer">
-                    Open Original Page <ExternalLink className="h-4 w-4" />
-                  </a>
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1 gap-2 border-border/50 hover:border-primary/30" asChild>
+                    <a href={selectedNode.url} target="_blank" rel="noreferrer">
+                      Open Original Page <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2 border-border/50 text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                    onClick={(e) => handleDelete(selectedNode.id, e)}
+                    disabled={deletingId === selectedNode.id}
+                  >
+                    {deletingId === selectedNode.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                    Delete
+                  </Button>
+                </div>
               </div>
             </>
           )}

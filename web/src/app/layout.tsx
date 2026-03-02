@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,6 +25,7 @@ export default function RootLayout({
         <TooltipProvider delayDuration={300}>
           {children}
         </TooltipProvider>
+        <Toaster richColors position="bottom-right" />
       </body>
     </html>
   );

@@ -30,32 +30,8 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Network, Inbox, ExternalLink, Clock, Tag, FileText, Link as LinkIcon } from 'lucide-react'
 
-// Database Types
-type DBNode = {
-  id: string
-  user_id: string
-  url: string
-  title: string
-  summary: string
-  raw_text: string
-  created_at: string
-}
-
-type DBEdge = {
-  id: string
-  source_id: string
-  target_id: string
-  relation_type: string
-  weight: number
-}
-
-type DBEntity = {
-  id: string
-  name: string
-  type: string
-  user_id: string
-  node_id: string | null
-}
+import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
+import { useUIStore } from '@/stores/ui-store'
 
 interface KnowledgeGraphProps {
   initialNodes: DBNode[]
@@ -95,8 +71,9 @@ export default function KnowledgeGraph({
   initialEdges = [],
   initialEntities = [],
 }: KnowledgeGraphProps) {
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const selectedDBNode = initialNodes.find(n => n.id === selectedNodeId)
+  const selectedNodeId = useUIStore((s) => s.selectedNodeId)
+  const setSelectedNodeId = useUIStore((s) => s.setSelectedNodeId)
+  const selectedDBNode = initialNodes.find((n) => n.id === selectedNodeId)
 
   // Map DB Nodes to React Flow Nodes — use a grid layout instead of circular
   const initialFlowNodes: FlowNode[] = useMemo(() => {
@@ -109,8 +86,8 @@ export default function KnowledgeGraph({
       const row = Math.floor(i / cols)
 
       // Add slight random offset for organic feel
-      const jitterX = (Math.sin(i * 1337) * 40)
-      const jitterY = (Math.cos(i * 7919) * 30)
+      const jitterX = Math.sin(i * 1337) * 40
+      const jitterY = Math.cos(i * 7919) * 30
 
       return {
         id: node.id,
@@ -122,7 +99,7 @@ export default function KnowledgeGraph({
         data: {
           label: node.title,
           summary: node.summary,
-          entities: initialEntities.filter(e => e.node_id === node.id),
+          entities: initialEntities.filter((e) => e.node_id === node.id),
         },
       }
     })
@@ -154,9 +131,12 @@ export default function KnowledgeGraph({
     []
   )
 
-  const onNodeClick = useCallback((_event: React.MouseEvent, node: FlowNode) => {
-    setSelectedNodeId(node.id)
-  }, [])
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: FlowNode) => {
+      setSelectedNodeId(node.id)
+    },
+    [setSelectedNodeId]
+  )
 
   if (initialNodes.length === 0) {
     return (
@@ -204,11 +184,11 @@ export default function KnowledgeGraph({
       <Sheet open={!!selectedNodeId} onOpenChange={(open) => !open && setSelectedNodeId(null)}>
         <SheetContent className="w-[520px] sm:max-w-xl overflow-y-auto bg-background/95 backdrop-blur-xl border-border/50">
           {selectedDBNode && (() => {
-            const nodeEntities = initialEntities.filter(e => e.node_id === selectedDBNode.id)
+            const nodeEntities = initialEntities.filter((e) => e.node_id === selectedDBNode.id)
             const connectedNodeIds = initialEdges
-              .filter(e => e.source_id === selectedDBNode.id || e.target_id === selectedDBNode.id)
-              .map(e => e.source_id === selectedDBNode.id ? e.target_id : e.source_id)
-            const connectedNodes = initialNodes.filter(n => connectedNodeIds.includes(n.id))
+              .filter((e) => e.source_id === selectedDBNode.id || e.target_id === selectedDBNode.id)
+              .map((e) => (e.source_id === selectedDBNode.id ? e.target_id : e.source_id))
+            const connectedNodes = initialNodes.filter((n) => connectedNodeIds.includes(n.id))
 
             return (
               <>
@@ -248,7 +228,7 @@ export default function KnowledgeGraph({
                     </h3>
                     {nodeEntities.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
-                        {nodeEntities.map(entity => (
+                        {nodeEntities.map((entity) => (
                           <Badge key={entity.id} variant="outline" className="text-xs px-2.5 py-1 bg-primary/10 text-primary border-primary/20">
                             {entity.name}
                             <span className="ml-1 opacity-60 text-[10px]">{entity.type}</span>
@@ -268,7 +248,7 @@ export default function KnowledgeGraph({
                     </h3>
                     {connectedNodes.length > 0 ? (
                       <div className="space-y-2">
-                        {connectedNodes.map(cn => (
+                        {connectedNodes.map((cn) => (
                           <div key={cn.id} className="flex items-center gap-3 rounded-lg bg-muted/50 border border-border/30 p-3 text-sm hover:border-primary/30 transition-colors cursor-pointer" onClick={() => setSelectedNodeId(cn.id)}>
                             <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
                             <p className="font-medium truncate text-sm">{cn.title}</p>

@@ -1,11 +1,43 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Storage } from "@plasmohq/storage"
 
 import "./style.css"
+
+const storage = new Storage()
+
+/** Returns today's date as YYYY-MM-DD for daily counter resets */
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10)
+}
 
 function IndexPopup() {
   const [status, setStatus] = useState<"idle" | "extracting" | "processing" | "done" | "error" | "jwt_expired">("idle")
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [lastCapture, setLastCapture] = useState<string | null>(null)
+  const [captureCount, setCaptureCount] = useState(0)
+
+  // Load today's capture count on mount
+  useEffect(() => {
+    ;(async () => {
+      const storedDate = await storage.get("capture-count-date")
+      if (storedDate === todayKey()) {
+        const count = parseInt((await storage.get("capture-count")) || "0", 10)
+        setCaptureCount(count)
+      } else {
+        // New day — reset
+        await storage.set("capture-count", "0")
+        await storage.set("capture-count-date", todayKey())
+        setCaptureCount(0)
+      }
+    })()
+  }, [])
+
+  const incrementCaptureCount = async () => {
+    const newCount = captureCount + 1
+    setCaptureCount(newCount)
+    await storage.set("capture-count", String(newCount))
+    await storage.set("capture-count-date", todayKey())
+  }
 
   const handleCapture = async () => {
     setStatus("extracting")
@@ -39,6 +71,7 @@ function IndexPopup() {
         } else if (response.success) {
           setStatus("done")
           setLastCapture(tabs[0].title || "Page")
+          incrementCaptureCount()
         } else {
           setStatus("error")
           setErrorMsg(response.error || "Unknown error")
@@ -47,7 +80,7 @@ function IndexPopup() {
 
       // Show processing state while waiting
       setTimeout(() => {
-        setStatus((prev) => prev === "extracting" ? "processing" : prev)
+        setStatus((prev) => (prev === "extracting" ? "processing" : prev))
       }, 500)
 
     } catch (err: any) {
@@ -80,6 +113,11 @@ function IndexPopup() {
               </svg>
             </div>
             <span className="text-sm font-bold tracking-tight">Nexus</span>
+            {captureCount > 0 && (
+              <span className="text-[10px] bg-[#7c5cfc]/20 text-[#7c5cfc] px-1.5 py-0.5 rounded-full font-medium">
+                {captureCount} today
+              </span>
+            )}
           </div>
           <button
             onClick={() => chrome.runtime.openOptionsPage()}

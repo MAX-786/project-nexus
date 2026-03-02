@@ -56,6 +56,7 @@ To ensure the AI coding agent builds this reliably and fast, we are strictly usi
 * **Story 1.1 (Settings):** As a user, I can click the extension icon to open a Shadcn UI popover, where I can securely input and save my LLM API key (stored in local browser storage for Tier 1, or synced via Supabase for Tier 2).
 * **Story 1.2 (Capture):** As a user, I can click a "Capture" button on any webpage. The extension scrapes the main `article` text or YouTube transcript.
 * **Story 1.3 (AI Processing):** As a system, when text is captured, I use the provided API key to trigger an LLM prompt that returns a structured JSON containing: `{ "summary": "...", "entities": ["..."] }`.
+* **Story 1.4 (Capture Counter):** As a user, I can see a daily capture count badge in the extension popup header that shows how many pages I've captured today.
 
 ### Epic 2: The Web Dashboard & Knowledge Graph
 
@@ -64,6 +65,9 @@ To ensure the AI coding agent builds this reliably and fast, we are strictly usi
 * **Story 2.1 (The Feed):** As a user, I want a split-screen dashboard. The left panel shows a chronological list of my captured nodes (Title + Summary preview).
 * **Story 2.2 (Vector Auto-linking):** As a system, when a new node is saved, I generate a text embedding using `pgvector`. I query the database for similar existing nodes (cosine similarity > 0.8) and automatically create an `edge` between them.
 * **Story 2.3 (Visual Graph):** As a user, I can view the right panel to see a React Flow 2D canvas mapping out my nodes and entities. Clicking a node opens a slide-out drawer with the full summary and its connections.
+* **Story 2.4 (Search):** As a user, I can search across my captured nodes by title, summary, or entity name to quickly find relevant knowledge.
+* **Story 2.5 (Delete):** As a user, I can delete a captured node, which also removes its entities, edges, and spaced repetition review entry.
+* **Story 2.6 (Auth Callback):** As a system, when a user confirms their email after signup, I exchange the confirmation code for a session and redirect to the dashboard. *(Optional for MVP — email confirmation can be disabled in Supabase dashboard.)*
 
 ### Epic 3: Gamified Spaced Repetition (The "Review" Tab)
 
@@ -75,7 +79,18 @@ To ensure the AI coding agent builds this reliably and fast, we are strictly usi
 
 ---
 
-## 5. Development Phases (For the AI Agent)
+## 5. State Management
+
+* **Zustand** is used for all client-side global state in the Next.js web app:
+  * `auth-store` — holds the authenticated user (hydrated from server via AuthProvider)
+  * `nodes-store` — holds nodes, entities, edges with search filtering and optimistic delete
+  * `ui-store` — holds shared UI state like selected node (shared across Feed and Graph views)
+* **Persist middleware** can be added to any store for localStorage syncing when needed (e.g., user preferences).
+* Data is still fetched in **Server Components** (Next.js best practice) and hydrated into stores via provider components.
+
+---
+
+## 6. Development Phases (For the AI Agent)
 
 When prompting your AI agent, execute in this exact order to prevent context-window collapse and spaghetti code:
 
@@ -87,7 +102,7 @@ When prompting your AI agent, execute in this exact order to prevent context-win
 
 ---
 
-## 6. Guardrails & Constraints
+## 7. Guardrails & Constraints
 
 * **Privacy First:** For Tier 1 users, API calls to the LLM must happen *directly* from the browser extension to the LLM provider (OpenAI/Anthropic) using the user's local key. Do not route Tier 1 data through our Next.js backend.
 * **Performance:** React Flow can get laggy with 1000+ nodes. Implement pagination or "local cluster viewing" (only showing nodes 2 degrees of separation from the currently selected node).

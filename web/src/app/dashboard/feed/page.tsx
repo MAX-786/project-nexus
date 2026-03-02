@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import NodeFeed from '@/components/dashboard/node-feed'
+import NodesHydrator from '@/components/providers/nodes-hydrator'
 
 export default async function FeedPage() {
   const supabase = await createClient()
@@ -22,12 +23,14 @@ export default async function FeedPage() {
   ])
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <NodeFeed
-        nodes={nodesResult.data ?? []}
-        entities={entitiesResult.data ?? []}
-        edges={edgesResult.data ?? []}
-      />
-    </div>
+    <NodesHydrator
+      nodes={nodesResult.data ?? []}
+      entities={entitiesResult.data ?? []}
+      edges={edgesResult.data ?? []}
+    >
+      <div className="flex flex-col h-full min-h-0">
+        <NodeFeed />
+      </div>
+    </NodesHydrator>
   )
 }

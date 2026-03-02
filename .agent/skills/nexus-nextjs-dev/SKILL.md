@@ -5,10 +5,16 @@ description: Guidelines for writing Next.js App Router frontend code, using Shad
 
 # Next.js & Frontend Guidelines
 
+## State Management & Workflows
+1. **Global State (Zustand):** Use Zustand for global client-side state management instead of React Context or prop drilling.
+2. **Persistence:** Use Zustand's `persist` middleware to automatically sync necessary state (like user preferences or local caches) with browser storage.
+3. **Logical Workflows:** Keep business logic outside of UI components. Create modular custom hooks or utility functions to handle complex interactions, adhering to industry standards for separation of concerns.
+
 ## Component Architecture (App Router)
 1. **Default to Server Components:** All components in the `app/` directory must be Server Components by default.
 2. **Client Components:** Only add `"use client"` at the top of a file if it absolutely requires React hooks (`useState`, `useEffect`), browser APIs (like `window`), or complex interactivity (like React Flow canvases).
 3. **Data Fetching:** Fetch data directly in Server Components using async/await and the `@supabase/ssr` client. Do not use `useEffect` for data fetching unless paginating on the client.
+4. **Modularity:** Write small, reusable, and modular components. Break down complex UIs into logical pieces following the Single Responsibility Principle.
 
 ## UI & Styling
 1. **Shadcn UI:** Always check if a Shadcn component exists (e.g., Button, Dialog, Card, Sheet, Toast) before building a custom one. 

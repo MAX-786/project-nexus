@@ -5,6 +5,11 @@ description: Rules for interacting with Supabase, PostgreSQL Row Level Security 
 
 # Supabase & Database Guidelines
 
+## Backend Architecture & Workflows
+1. **Modular Code:** Separate database queries, API routing, and business logic. Use a service-based architecture (e.g., `services/queryService.ts`) to keep the codebase highly modular and testable.
+2. **Data Validation:** Always rigorously validate incoming payload data at the API boundary using schema validation (e.g., Zod) before performing database operations.
+3. **Logical Workflows:** Follow standard industry workflows for data mutations: Validate Input -> Verify Authorization -> Execute Database Transaction -> Return Standardized Response. Handle errors centrally and return appropriate HTTP status codes.
+
 ## Row Level Security (RLS) - CRITICAL
 1. Every table MUST have RLS enabled.
 2. Write policies ensuring users can only `SELECT`, `INSERT`, `UPDATE`, or `DELETE` rows where the `user_id` matches `auth.uid()`. 

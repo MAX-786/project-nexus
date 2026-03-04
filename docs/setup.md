@@ -51,20 +51,11 @@ Supabase handles our database (PostgreSQL), authentication, and vector embedding
 5. Copy the contents of `/supabase_setup.sql` from the root of this repository.
 6. Run the script to initialize the tables, RLS policies, and enable `pgvector`.
 
-### Option B: Local Supabase Development
-*Ensure Docker is installed and running.*
-1. Install the Supabase CLI: `npm install -g supabase` or via `brew install supabase/tap/supabase`.
-2. Initialize and start Supabase at the project root:
-   ```bash
-   supabase init
-   supabase start
-   ```
-3. The CLI will output local API URLs and anon keys. Copy these into your `.env.local`.
-4. Run the setup SQL script against your local database instance:
-   ```bash
-   supabase db reset
-   ```
-*(Note: If the `supabase_setup.sql` logic is not yet integrated into `supabase/migrations/`, you may need to apply it manually via the local Studio UI at `http://127.0.0.1:54323`).*
+### Option B: Local Supabase Development (Open-Source Recommended)
+For a completely isolated and free local development environment, we recommend running Supabase locally using Docker. 
+
+Please refer to our dedicated guide: 
+👉 **[Local Supabase Setup Guide](./local-supabase-setup.md)**
 
 ## 4. Vercel Deployment
 

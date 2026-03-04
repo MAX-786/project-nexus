@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@nexus/shared": [
+        "../../packages/shared/src"
       ]
     }
   },

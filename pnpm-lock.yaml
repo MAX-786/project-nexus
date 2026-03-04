@@ -94,6 +94,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@nexus/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@supabase/ssr':
         specifier: ^0.8.0
         version: 0.8.0(@supabase/supabase-js@2.98.0)
@@ -167,6 +170,12 @@ importers:
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
+      typescript:
+        specifier: ^5
+        version: 5.3.3
+
+  packages/shared:
+    dependencies:
       typescript:
         specifier: ^5
         version: 5.3.3

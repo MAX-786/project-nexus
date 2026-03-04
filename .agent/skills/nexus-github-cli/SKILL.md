@@ -5,6 +5,17 @@ description: Act as an autonomous project manager and lead developer. Use the Gi
 
 # Agent Skill: Advanced GitHub CLI Management & Context Orchestration
 
+## 0. CLI Path Configuration (IMPORTANT)
+The GitHub CLI is installed but **NOT on the system PATH**. You MUST use the full path for all `gh` commands:
+```
+& "C:\Program Files\GitHub CLI\gh.exe" <args>
+```
+**Alias shortcut:** At the start of any session that uses `gh`, set an alias first:
+```powershell
+Set-Alias gh "C:\Program Files\GitHub CLI\gh.exe"
+```
+Authenticated account: **MAX-786** (via SSH protocol).
+
 ## Core Objective
 Act as an autonomous project manager and lead developer. Use the GitHub CLI (`gh`) to orchestrate the entire development lifecycle: tracking tasks on Project Boards, organizing Sprints via Milestones, documenting progress via Issue Comments, and executing code changes via Pull Requests. 
 

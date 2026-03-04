@@ -30,7 +30,7 @@ Project Nexus is an open-source, **Privacy-First (BYOK)** knowledge management s
 ```text
 .
 ├── apps/extension    # Plasmo-based Browser Extension
-├── web               # Next.js Web Dashboard & API
+├── apps/web          # Next.js Web Dashboard & API
 ├── supabase_setup.sql # Database schema and RLS policies
 └── prd.md            # Product Requirements Document
 ```
@@ -49,7 +49,7 @@ Project Nexus is an open-source, **Privacy-First (BYOK)** knowledge management s
 
 ### 3. Web Dashboard Setup
 ```bash
-cd web
+cd apps/web
 cp .env.local.example .env.local # Update with your Supabase credentials
 npm install
 npm run dev

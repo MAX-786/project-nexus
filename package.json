@@ -1,0 +1,20 @@
+{
+  "name": "project-nexus",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^19.0.10",
+      "@types/react-dom": "^19.0.4"
+    }
+  },
+  "devDependencies": {
+    "turbo": "latest"
+  }
+}

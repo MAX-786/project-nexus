@@ -12,32 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ExternalLink, Link as LinkIcon, Tag, Clock, Network, FileText } from 'lucide-react'
-
-type DBNode = {
-  id: string
-  user_id: string
-  url: string
-  title: string
-  summary: string
-  raw_text: string
-  created_at: string
-}
-
-type DBEntity = {
-  id: string
-  name: string
-  type: string
-  user_id: string
-  node_id: string | null
-}
-
-type DBEdge = {
-  id: string
-  source_id: string
-  target_id: string
-  relation_type: string
-  weight: number
-}
+import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
 
 interface NodeDetailSheetProps {
   node: DBNode

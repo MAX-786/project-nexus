@@ -27,31 +27,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-
-// Database Types
-type DBNode = {
-  id: string
-  user_id: string
-  url: string
-  title: string
-  summary: string
-  raw_text: string
-}
-
-type DBEdge = {
-  id: string
-  source_id: string
-  target_id: string
-  relation_type: string
-  weight: number
-}
-
-type DBEntity = {
-  id: string
-  name: string
-  type: string
-  user_id: string
-}
+import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
 
 interface GraphDashboardProps {
   initialNodes: DBNode[]

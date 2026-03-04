@@ -100,7 +100,7 @@ export default function NodeFeed() {
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
 
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
 
   const nodeEntities = (nodeId: string) => entities.filter((e) => e.node_id === nodeId)
   const connectionCount = (nodeId: string) =>

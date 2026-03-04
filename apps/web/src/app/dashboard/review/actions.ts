@@ -31,7 +31,7 @@ export async function submitReview(reviewId: string, rating: number) {
   }
 
   // SM-2 Calculation
-  let { ease_factor, interval } = review
+  const { ease_factor, interval } = review
 
   // Map our 0-3 rating to SM-2's 0-5 quality scale
   // 0 (Forgot) -> q=0, 1 (Hard) -> q=2, 2 (Good) -> q=4, 3 (Easy) -> q=5

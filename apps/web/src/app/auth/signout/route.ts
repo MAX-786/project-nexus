@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-export async function POST(request: Request) {
+export async function POST() {
   const cookieStore = await cookies()
 
   const supabase = createServerClient(

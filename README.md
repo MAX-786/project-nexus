@@ -41,28 +41,38 @@ Project Nexus is an open-source, **Privacy-First (BYOK)** knowledge management s
 
 ### 1. Prerequisites
 *   [Node.js](https://nodejs.org/) (v20+ recommended)
+*   [pnpm](https://pnpm.io/) (v9+)
 *   A [Supabase](https://supabase.com/) project (Self-hosted or Cloud)
 
 ### 2. Database Setup
 1.  Run the contents of `supabase_setup.sql` in your Supabase SQL Editor.
 2.  Enable the `pgvector` extension if not already active.
 
-### 3. Web Dashboard Setup
+### 3. Environment Variables
 ```bash
-cd apps/web
-cp .env.local.example .env.local # Update with your Supabase credentials
-npm install
-npm run dev
+# At the root of the project
+cp .env.example .env.local
+```
+Update `.env.local` with your Supabase credentials and other configuration values.
+
+### 4. Running the Development Server
+Project Nexus uses a [turbo](https://turbo.build/) monorepo structure.
+
+```bash
+# Install dependencies 
+pnpm install
+
+# Start both the web app and extension in development mode
+pnpm dev
 ```
 
-### 4. Browser Extension Setup
-```bash
-cd apps/extension
-cp .env.local.example .env.local # Update with your Supabase credentials
-npm install
-npm run dev
-```
-*   Load the `apps/extension/build/chrome-mv3-dev` folder into Chrome as an "Unpacked Extension".
+### 5. Loading the Extension
+After running `pnpm dev`, load the extension into Chrome:
+*   Navigate to `chrome://extensions/`
+*   Enable "Developer mode"
+*   Click "Load unpacked" and select the `apps/extension/build/chrome-mv3-dev` folder.
+
+For more detailed setup guides, please see our [documentation](./docs/setup.md).
 
 ---
 

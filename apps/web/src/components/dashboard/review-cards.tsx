@@ -9,7 +9,6 @@ import {
   Eye,
   RotateCcw,
   Frown,
-  Meh,
   Smile,
   Sparkles,
   ExternalLink,

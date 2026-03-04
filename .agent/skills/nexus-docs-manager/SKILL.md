@@ -33,7 +33,11 @@ Maintain strict boundaries for where information lives:
 - `prd.md`: The internal architectural source of truth, database schemas, and future roadmaps. (Target audience: You, the AI agent, and the maintainers).
 - `docs/setup.md`: Deep-dive instructions for BYOK, Supabase local hosting, and Vercel deployments.
 - `.env.example`: Must be kept in perfect sync with the actual required environment variables in the codebase. If you add `process.env.NEW_VAR`, you MUST add it here with a dummy value and a comment explaining its purpose.
+- `docs/` folder: All other documentation files. (Target audience: Open-source users).
 
 ## 5. Tone and Style
 - **Concise & Developer-Centric:** Write like an experienced engineer talking to another engineer. Avoid marketing fluff (e.g., "Incredible new feature!"). Use imperative verbs ("Run the server," "Set the API key").
 - **Accuracy First:** Never hallucinate features, CLI commands, or file paths that do not exist in the actual codebase.
+- **Consistency:** Maintain consistent formatting and structure across all documentation files.
+- **Clarity:** Use clear, concise language and avoid jargon unless it is common knowledge for the target audience.
+- **Organization:** Group related information together and use clear headings and subheadings to make it easy to navigate.

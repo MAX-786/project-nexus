@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import ReviewCards from '@/components/dashboard/review-cards'
-import { GraduationCap, CheckCircle2, Inbox } from 'lucide-react'
+import { GraduationCap, CheckCircle2 } from 'lucide-react'
 import type { ReviewWithNode } from '@/lib/types'
 
 export default async function ReviewPage() {

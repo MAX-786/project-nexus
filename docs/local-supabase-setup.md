@@ -41,7 +41,10 @@ Running Project Nexus on a local Supabase instance is the recommended setup for 
 ## Managing the Database
 
 - **Local Studio**: You can view and manage your local database using the Supabase Studio UI at `http://127.0.0.1:54323`.
-- **Applying Schema**: If you need to manually apply the schema initially, copy the contents of `/supabase_setup.sql` and run it in the SQL Editor within the Local Studio.
+- **Applying Schema (Migrations)**: The database schema is located in `supabase_setup.sql`, which we've configured as an initial migration (`supabase/migrations/20240101000000_init.sql`). To automatically apply the schema to your local database, simply run:
+  ```bash
+  supabase db reset
+  ```
 - **Stopping Supabase**: When you're done working, run `supabase stop` to spin down the Docker containers and free up system resources.
 
 ## Troubleshooting

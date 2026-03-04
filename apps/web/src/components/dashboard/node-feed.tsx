@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { FeedEmptyState } from './empty-states'
 import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
@@ -134,17 +135,7 @@ export default function NodeFeed() {
   }
 
   if (nodes.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-        <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
-          <Inbox className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-semibold mb-2">No memories yet</h3>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          Use the Nexus browser extension to capture web pages. They&apos;ll appear here with AI-generated summaries.
-        </p>
-      </div>
-    )
+    return <FeedEmptyState />
   }
 
   return (

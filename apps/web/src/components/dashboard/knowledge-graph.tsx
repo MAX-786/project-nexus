@@ -28,10 +28,11 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Network, Inbox, ExternalLink, Clock, Tag, FileText, Link as LinkIcon } from 'lucide-react'
+import { Network, ExternalLink, Clock, Tag, FileText, Link as LinkIcon } from 'lucide-react'
 
 import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
 import { useUIStore } from '@/stores/ui-store'
+import { GraphEmptyState } from './empty-states'
 
 interface KnowledgeGraphProps {
   initialNodes: DBNode[]
@@ -139,17 +140,7 @@ export default function KnowledgeGraph({
   )
 
   if (initialNodes.length === 0) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center text-center p-8">
-        <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
-          <Inbox className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-semibold mb-2">No graph data yet</h3>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          Capture some pages with the extension, and your knowledge graph will appear here.
-        </p>
-      </div>
-    )
+    return <GraphEmptyState />
   }
 
   return (

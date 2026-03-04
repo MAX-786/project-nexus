@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import ReviewCards from '@/components/dashboard/review-cards'
-import { GraduationCap, CheckCircle2 } from 'lucide-react'
+import { ReviewEmptyState } from '@/components/dashboard/empty-states'
+import { GraduationCap } from 'lucide-react'
 import type { ReviewWithNode } from '@/lib/types'
 
 export default async function ReviewPage() {
@@ -67,17 +68,7 @@ export default async function ReviewPage() {
       {/* Review Content */}
       <div className="flex-1 flex items-center justify-center p-6">
         {reviews.length === 0 ? (
-          <div className="text-center">
-            <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4 mx-auto">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              {(totalCount ?? 0) > 0
-                ? "You've reviewed all cards due today. Come back tomorrow for more."
-                : "No cards in your review library yet. Capture some pages to get started."}
-            </p>
-          </div>
+          <ReviewEmptyState hasAnyReviews={(totalCount ?? 0) > 0} />
         ) : (
           <ReviewCards reviews={reviews} />
         )}

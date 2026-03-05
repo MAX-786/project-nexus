@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FeedEmptyState } from './empty-states'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Sheet,
   SheetContent,
@@ -24,6 +25,8 @@ import {
   Search,
   Trash2,
   Loader2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -73,6 +76,15 @@ function getDomain(url: string): string {
   }
 }
 
+function getFaviconUrl(url: string): string {
+  try {
+    const domain = new URL(url).hostname
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+  } catch {
+    return ''
+  }
+}
+
 const entityTypeColors: Record<string, string> = {
   person: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
   concept: 'bg-violet-500/15 text-violet-400 border-violet-500/25',
@@ -101,6 +113,7 @@ export default function NodeFeed() {
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
 
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
   const nodeEntities = (nodeId: string) => entities.filter((e) => e.node_id === nodeId)
@@ -183,7 +196,7 @@ export default function NodeFeed() {
               return (
                 <Card
                   key={node.id}
-                  className="group cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
+                  className="group cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-[oklch(0.637_0.237_275/12%)]"
                   onClick={() => setSelectedNodeId(node.id)}
                 >
                   <CardHeader className="pb-2">
@@ -193,15 +206,31 @@ export default function NodeFeed() {
                           {node.title}
                         </CardTitle>
                         <CardDescription className="mt-1.5 flex items-center gap-1.5 text-xs">
-                          <ExternalLink className="h-3 w-3 shrink-0" />
+                          {getFaviconUrl(node.url) && (
+                            <img
+                              src={getFaviconUrl(node.url)}
+                              alt=""
+                              width={14}
+                              height={14}
+                              className="shrink-0 rounded-sm"
+                              loading="lazy"
+                            />
+                          )}
                           <span className="truncate">{getDomain(node.url)}</span>
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {formatRelativeTime(node.created_at)}
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground cursor-default">
+                              <Clock className="h-3 w-3" />
+                              {formatRelativeTime(node.created_at)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            {formatDate(node.created_at)}
+                          </TooltipContent>
+                        </Tooltip>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -220,15 +249,35 @@ export default function NodeFeed() {
                     </div>
                   </CardHeader>
                   <CardContent className="pb-3">
-                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                      {node.summary}
-                    </p>
+                    <div>
+                      <p className={`text-sm text-muted-foreground leading-relaxed ${
+                        expandedId === node.id ? '' : 'line-clamp-2'
+                      }`}>
+                        {node.summary}
+                      </p>
+                      {node.summary && node.summary.length > 120 && (
+                        <button
+                          type="button"
+                          className="mt-1 flex items-center gap-0.5 text-xs text-primary hover:text-primary/80 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setExpandedId(expandedId === node.id ? null : node.id)
+                          }}
+                        >
+                          {expandedId === node.id ? (
+                            <><ChevronUp className="h-3 w-3" /> Show less</>
+                          ) : (
+                            <><ChevronDown className="h-3 w-3" /> Read more</>
+                          )}
+                        </button>
+                      )}
+                    </div>
                     <div className="mt-3 flex items-center gap-2 flex-wrap">
                       {ne.slice(0, 3).map((entity) => (
                         <Badge
                           key={entity.id}
-                          variant="secondary"
-                          className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-primary/20"
+                          variant="outline"
+                          className={`text-xs px-2 py-0.5 ${getEntityColor(entity.type)}`}
                         >
                           <Tag className="h-2.5 w-2.5 mr-1" />
                           {entity.name}
@@ -238,8 +287,9 @@ export default function NodeFeed() {
                         <span className="text-xs text-muted-foreground">+{ne.length - 3} more</span>
                       )}
                       {cc > 0 && (
-                        <span className="text-xs text-muted-foreground ml-auto">
-                          {cc} {cc === 1 ? 'link' : 'links'}
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+                          <Network className="h-3 w-3" />
+                          {cc}
                         </span>
                       )}
                     </div>

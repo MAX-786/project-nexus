@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Button } from '@/components/ui/button'
 import NavTab from '@/components/dashboard/nav-tab'
 import AuthProvider from '@/components/providers/auth-provider'
+import DashboardStats from '@/components/dashboard/dashboard-stats'
 
 export default async function DashboardLayout({
   children,
@@ -23,6 +24,14 @@ export default async function DashboardLayout({
   if (!user) {
     return redirect('/login')
   }
+
+  // Fetch count of reviews due today or earlier for stats bar
+  const now = new Date().toISOString()
+  const { count: dueCount } = await supabase
+    .from('reviews')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .lte('next_review_date', now)
 
   const initials = (user.email ?? '?')
     .split('@')[0]
@@ -87,6 +96,9 @@ export default async function DashboardLayout({
             </div>
           </div>
         </header>
+
+        {/* Stats Bar */}
+        <DashboardStats dueCount={dueCount ?? 0} />
 
         {/* Main Content */}
         <main className="flex-1 overflow-hidden">{children}</main>

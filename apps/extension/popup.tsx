@@ -33,9 +33,12 @@ function IndexPopup() {
         if (timeRemaining <= 0) {
           setJwtStatus("expired")
           setStatus("jwt_expired")
-        } else if (timeRemaining < 24 * 60 * 60) {
-          // Less than 24 hours remaining
+        } else if (timeRemaining < 60 * 60) {
+          // Less than 1 hour remaining
           setJwtStatus("expiring_soon")
+        } else {
+          setJwtStatus("valid")
+          setStatus((prev) => prev === "jwt_expired" ? "idle" : prev)
         }
       } catch (err) {
         console.warn("Failed to decode JWT locally in popup", err)
@@ -182,7 +185,7 @@ function IndexPopup() {
           {jwtStatus === "expiring_soon" && status !== "jwt_expired" && (
             <div className="p-3 bg-nexus-warning/10 border border-nexus-warning/20 rounded-lg animate-nexus-fade-in space-y-2">
               <p className="text-xs text-nexus-warning font-medium">⚠ Token expiring soon</p>
-              <p className="text-[11px] text-nexus-muted">Your session token will expire within 24 hours.</p>
+              <p className="text-[11px] text-nexus-muted">Your session token will expire within 1 hour.</p>
               <button
                 onClick={() => {
                   const siteUrl = process.env.PLASMO_PUBLIC_SITE_URL || "http://localhost:3000"

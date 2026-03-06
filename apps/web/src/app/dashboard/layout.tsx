@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import NavTab from '@/components/dashboard/nav-tab'
 import AuthProvider from '@/components/providers/auth-provider'
 import DashboardStats from '@/components/dashboard/dashboard-stats'
+import CommandSearch from '@/components/dashboard/command-search'
 
 export default async function DashboardLayout({
   children,
@@ -62,6 +63,9 @@ export default async function DashboardLayout({
               <NavTab href="/dashboard/graph" icon={<Network className="h-4 w-4" />} label="Graph" />
               <NavTab href="/dashboard/review" icon={<GraduationCap className="h-4 w-4" />} label="Review" />
             </nav>
+
+            {/* Global Search — Cmd+K command palette */}
+            <CommandSearch />
 
             {/* User Section */}
             <div className="flex items-center gap-3">

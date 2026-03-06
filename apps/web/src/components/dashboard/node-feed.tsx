@@ -103,7 +103,6 @@ export default function NodeFeed() {
   const entities = useNodesStore((s) => s.entities)
   const edges = useNodesStore((s) => s.edges)
   const searchQuery = useNodesStore((s) => s.searchQuery)
-  const setSearchQuery = useNodesStore((s) => s.setSearchQuery)
   const removeNodeFromStore = useNodesStore((s) => s.removeNode)
 
   const selectedNodeId = useUIStore((s) => s.selectedNodeId)
@@ -153,8 +152,8 @@ export default function NodeFeed() {
 
   return (
     <>
-      {/* Feed header + search */}
-      <div className="px-6 py-4 border-b border-border/50 shrink-0 space-y-3">
+      {/* Feed header */}
+      <div className="px-6 py-4 border-b border-border/50 shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -166,17 +165,6 @@ export default function NodeFeed() {
               {searchQuery && ` · ${filteredNodes.length} matching`}
             </p>
           </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            className="flex h-9 w-full rounded-lg border border-border/50 bg-background/50 pl-9 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary/50 transition-colors"
-            placeholder="Search by title, summary, or entity…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
         </div>
       </div>
 

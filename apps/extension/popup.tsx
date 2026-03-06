@@ -12,9 +12,47 @@ function todayKey(): string {
 
 function IndexPopup() {
   const [status, setStatus] = useState<"idle" | "extracting" | "processing" | "done" | "error" | "jwt_expired">("idle")
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [lastCapture, setLastCapture] = useState<string | null>(null)
+  const [progressStep, setProgressStep] = useState<string>("Processing with AI...")
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
   const [captureCount, setCaptureCount] = useState(0)
+  const [jwtStatus, setJwtStatus] = useState<"valid" | "expiring_soon" | "expired">("valid")
+
+  // Check JWT Status
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const token = await storage.get("supabase-jwt")
+        if (!token) return
+
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        if (!payload.exp) return
+
+        const now = Math.floor(Date.now() / 1000)
+        const timeRemaining = payload.exp - now
+
+        if (timeRemaining <= 0) {
+          setJwtStatus("expired")
+          setStatus("jwt_expired")
+        } else if (timeRemaining < 24 * 60 * 60) {
+          // Less than 24 hours remaining
+          setJwtStatus("expiring_soon")
+        }
+      } catch (err) {
+        console.warn("Failed to decode JWT locally in popup", err)
+      }
+    })()
+  }, [])
+
+  // Listen for capture progress from background script
+  useEffect(() => {
+    const listener = (msg: any) => {
+      if (msg.action === "capture_progress" && msg.payload?.step) {
+        setProgressStep(msg.payload.step)
+      }
+    }
+    chrome.runtime.onMessage.addListener(listener)
+    return () => chrome.runtime.onMessage.removeListener(listener)
+  }, [])
 
   // Load today's capture count on mount
   useEffect(() => {
@@ -41,13 +79,14 @@ function IndexPopup() {
 
   const handleCapture = async () => {
     setStatus("extracting")
-    setErrorMsg(null)
+    setProgressStep("Extracting...")
+    setToast(null)
 
     try {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
       if (!tabs[0]?.id) {
         setStatus("error")
-        setErrorMsg("No active tab found.")
+        setToast({ message: "No active tab found.", type: "error" })
         return
       }
 
@@ -55,7 +94,7 @@ function IndexPopup() {
       chrome.tabs.sendMessage(tabs[0].id, { action: "capture_from_popup" }, (response) => {
         if (chrome.runtime.lastError) {
           setStatus("error")
-          setErrorMsg("Cannot capture this page. Make sure it's a valid website and try refreshing.")
+          setToast({ message: "Cannot capture this page. Make sure it's a valid website and try refreshing.", type: "error" })
           return
         }
 
@@ -67,14 +106,16 @@ function IndexPopup() {
         // Response from content script after background finishes
         if (response.code === "jwt_expired") {
           setStatus("jwt_expired")
-          setErrorMsg(response.error)
+          setJwtStatus("expired")
+          setToast({ message: response.error, type: "error" })
         } else if (response.success) {
           setStatus("done")
-          setLastCapture(tabs[0].title || "Page")
+          setToast({ message: `Captured: ${tabs[0]!.title?.substring(0, 50) || "Page"}`, type: "success" })
           incrementCaptureCount()
+          setTimeout(() => setToast(null), 3000)
         } else {
           setStatus("error")
-          setErrorMsg(response.error || "Unknown error")
+          setToast({ message: response.error || "Unknown error", type: "error" })
         }
       })
 
@@ -85,7 +126,7 @@ function IndexPopup() {
 
     } catch (err: any) {
       setStatus("error")
-      setErrorMsg(err.message || "An unexpected error occurred.")
+      setToast({ message: err.message || "An unexpected error occurred.", type: "error" })
     }
   }
 
@@ -94,7 +135,7 @@ function IndexPopup() {
   const statusLabel: Record<string, string> = {
     idle: "Capture Page",
     extracting: "Extracting…",
-    processing: "Processing with AI…",
+    processing: progressStep,
     done: "Captured!",
     error: "Try Again",
     jwt_expired: "Token Expired",
@@ -137,6 +178,23 @@ function IndexPopup() {
             Capture this page to your knowledge graph.
           </p>
 
+          {/* JWT Expiring Soon Warning */}
+          {jwtStatus === "expiring_soon" && status !== "jwt_expired" && (
+            <div className="p-3 bg-nexus-warning/10 border border-nexus-warning/20 rounded-lg animate-nexus-fade-in space-y-2">
+              <p className="text-xs text-nexus-warning font-medium">⚠ Token expiring soon</p>
+              <p className="text-[11px] text-nexus-muted">Your session token will expire within 24 hours.</p>
+              <button
+                onClick={() => {
+                  const siteUrl = process.env.PLASMO_PUBLIC_SITE_URL || "http://localhost:3000"
+                  chrome.tabs.create({ url: `${siteUrl}/api/jwt` })
+                }}
+                className="w-full text-xs font-medium py-1.5 px-3 rounded-md bg-nexus-warning/20 text-nexus-warning hover:bg-nexus-warning/30 transition-colors"
+              >
+                Refresh Token →
+              </button>
+            </div>
+          )}
+
           {/* JWT Expired */}
           {status === "jwt_expired" && (
             <div className="p-3 bg-nexus-error/10 border border-nexus-error/20 rounded-lg animate-nexus-fade-in space-y-2">
@@ -162,19 +220,7 @@ function IndexPopup() {
             </div>
           )}
 
-          {/* Generic Error */}
-          {errorMsg && status === "error" && (
-            <div className="p-2.5 bg-nexus-error/10 border border-nexus-error/20 rounded-lg text-xs text-nexus-error animate-nexus-fade-in">
-              {errorMsg}
-            </div>
-          )}
 
-          {/* Last capture success */}
-          {status === "done" && lastCapture && (
-            <div className="p-2.5 bg-nexus-success/10 border border-nexus-success/20 rounded-lg text-xs text-nexus-success animate-nexus-fade-in">
-              ✓ Captured: {lastCapture.substring(0, 50)}{lastCapture.length > 50 ? "…" : ""}
-            </div>
-          )}
 
           {/* Capture Button */}
           <button
@@ -190,6 +236,35 @@ function IndexPopup() {
             {statusLabel[status]}
           </button>
         </div>
+        
+        {/* Toast Container */}
+        {toast && (
+          <div className={
+            `absolute bottom-4 left-4 right-4 p-3 rounded-lg text-xs shadow-lg animate-nexus-slide-up border flex items-start gap-2 ` + 
+            (toast.type === "success" 
+              ? "bg-[#111827] border-nexus-success/30 text-nexus-success shadow-nexus-success/10" 
+              : "bg-[#111827] border-nexus-error/30 text-nexus-error shadow-nexus-error/10")
+          }>
+            {toast.type === "success" ? (
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            <span className="flex-1 text-white/90 leading-tight">{toast.message}</span>
+            <button 
+              onClick={() => setToast(null)}
+              className="text-white/50 hover:text-white shrink-0"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

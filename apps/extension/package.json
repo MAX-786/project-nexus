@@ -40,6 +40,15 @@
   "manifest": {
     "host_permissions": [
       "https://*/*"
-    ]
+    ],
+    "commands": {
+      "capture_page": {
+        "suggested_key": {
+          "default": "Alt+Shift+C",
+          "mac": "Command+Shift+C"
+        },
+        "description": "Capture the current page to Project Nexus"
+      }
+    }
   }
 }

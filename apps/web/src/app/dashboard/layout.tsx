@@ -10,6 +10,7 @@ import NavTab from '@/components/dashboard/nav-tab'
 import AuthProvider from '@/components/providers/auth-provider'
 import DashboardStats from '@/components/dashboard/dashboard-stats'
 import CommandSearch from '@/components/dashboard/command-search'
+import ThemeToggle from '@/components/dashboard/theme-toggle'
 
 export default async function DashboardLayout({
   children,
@@ -69,6 +70,8 @@ export default async function DashboardLayout({
 
             {/* User Section */}
             <div className="flex items-center gap-3">
+              <ThemeToggle />
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-2">

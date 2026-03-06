@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { FeedEmptyState } from './empty-states'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -27,12 +29,16 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useNodesStore, useFilteredNodes } from '@/stores/nodes-store'
 import { useUIStore } from '@/stores/ui-store'
 import { deleteNode } from '@/app/dashboard/feed/actions'
+import { updateNode } from '@/app/dashboard/graph/actions'
 import type { DBNode } from '@/lib/types'
 
 // ---- Helpers ----
@@ -115,6 +121,20 @@ export default function NodeFeed() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
+  // Edit state
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editSummary, setEditSummary] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const updateNodeInStore = useNodesStore((s) => s.updateNode)
+
+  const handleSheetChange = useCallback((open: boolean) => {
+    if (!open) {
+      setSelectedNodeId(null)
+      cancelEditing()
+    }
+  }, [setSelectedNodeId])
+
   const nodeEntities = (nodeId: string) => entities.filter((e) => e.node_id === nodeId)
   const connectionCount = (nodeId: string) =>
     edges.filter((e) => e.source_id === nodeId || e.target_id === nodeId).length
@@ -144,6 +164,34 @@ export default function NodeFeed() {
       }
       setDeletingId(null)
     })
+  }
+
+  const startEditing = (node: DBNode) => {
+    setEditTitle(node.title)
+    setEditSummary(node.summary ?? '')
+    setIsEditing(true)
+  }
+
+  const cancelEditing = () => {
+    setIsEditing(false)
+    setEditTitle('')
+    setEditSummary('')
+  }
+
+  const handleSaveEdit = async (nodeId: string) => {
+    setIsSaving(true)
+    const result = await updateNode(nodeId, {
+      title: editTitle,
+      summary: editSummary,
+    })
+    if (result.error) {
+      toast.error(result.error)
+    } else {
+      updateNodeInStore(nodeId, { title: editTitle, summary: editSummary })
+      toast.success('Node updated successfully')
+      setIsEditing(false)
+    }
+    setIsSaving(false)
   }
 
   if (nodes.length === 0) {
@@ -290,14 +338,23 @@ export default function NodeFeed() {
       </div>
 
       {/* Single Sheet for node details */}
-      <Sheet open={!!selectedNodeId} onOpenChange={(open) => !open && setSelectedNodeId(null)}>
+      <Sheet open={!!selectedNodeId} onOpenChange={handleSheetChange}>
         <SheetContent className="w-[520px] sm:max-w-xl overflow-y-auto bg-background/95 backdrop-blur-xl border-border/50">
           {selectedNode && (
             <>
               <SheetHeader className="mb-6 space-y-3">
-                <SheetTitle className="text-xl leading-tight pr-8">
-                  {selectedNode.title}
-                </SheetTitle>
+                {isEditing ? (
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="text-xl font-semibold"
+                    placeholder="Node title"
+                  />
+                ) : (
+                  <SheetTitle className="text-xl leading-tight pr-8">
+                    {selectedNode.title}
+                  </SheetTitle>
+                )}
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <a
                     href={selectedNode.url}
@@ -319,12 +376,58 @@ export default function NodeFeed() {
 
               <div className="space-y-6">
                 <section>
-                  <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                    <FileText className="h-3.5 w-3.5" /> AI Summary
-                  </h3>
-                  <div className="rounded-xl bg-card/80 border border-border/50 p-4 text-sm leading-relaxed">
-                    {selectedNode.summary}
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <FileText className="h-3.5 w-3.5" /> AI Summary
+                    </h3>
+                    {!isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => startEditing(selectedNode)}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </Button>
+                    )}
                   </div>
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <Textarea
+                        value={editSummary}
+                        onChange={(e) => setEditSummary(e.target.value)}
+                        rows={6}
+                        className="text-sm leading-relaxed"
+                        placeholder="Summary..."
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1 text-xs"
+                          onClick={cancelEditing}
+                          disabled={isSaving}
+                        >
+                          <X className="h-3 w-3" />
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 gap-1 text-xs"
+                          onClick={() => handleSaveEdit(selectedNode.id)}
+                          disabled={isSaving}
+                        >
+                          {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl bg-card/80 border border-border/50 p-4 text-sm leading-relaxed">
+                      {selectedNode.summary}
+                    </div>
+                  )}
                 </section>
 
                 <Separator className="bg-border/30" />

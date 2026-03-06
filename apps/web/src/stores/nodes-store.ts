@@ -17,6 +17,9 @@ interface NodesState {
   /** Optimistically remove a node (and its related entities/edges) */
   removeNode: (nodeId: string) => void
 
+  /** Optimistically update a node's title and/or summary */
+  updateNode: (nodeId: string, updates: { title?: string; summary?: string }) => void
+
   /** Update search query */
   setSearchQuery: (query: string) => void
 }
@@ -36,6 +39,13 @@ export const useNodesStore = create<NodesState>()((set) => ({
       entities: state.entities.filter((e) => e.node_id !== nodeId),
       edges: state.edges.filter(
         (e) => e.source_id !== nodeId && e.target_id !== nodeId
+      ),
+    })),
+
+  updateNode: (nodeId, updates) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId ? { ...n, ...updates } : n
       ),
     })),
 

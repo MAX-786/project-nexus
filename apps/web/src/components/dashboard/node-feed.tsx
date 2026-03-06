@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -127,6 +127,13 @@ export default function NodeFeed() {
   const [editSummary, setEditSummary] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const updateNodeInStore = useNodesStore((s) => s.updateNode)
+
+  const handleSheetChange = useCallback((open: boolean) => {
+    if (!open) {
+      setSelectedNodeId(null)
+      cancelEditing()
+    }
+  }, [setSelectedNodeId])
 
   const nodeEntities = (nodeId: string) => entities.filter((e) => e.node_id === nodeId)
   const connectionCount = (nodeId: string) =>
@@ -331,7 +338,7 @@ export default function NodeFeed() {
       </div>
 
       {/* Single Sheet for node details */}
-      <Sheet open={!!selectedNodeId} onOpenChange={(open) => { if (!open) { setSelectedNodeId(null); cancelEditing() } }}>
+      <Sheet open={!!selectedNodeId} onOpenChange={handleSheetChange}>
         <SheetContent className="w-[520px] sm:max-w-xl overflow-y-auto bg-background/95 backdrop-blur-xl border-border/50">
           {selectedNode && (
             <>

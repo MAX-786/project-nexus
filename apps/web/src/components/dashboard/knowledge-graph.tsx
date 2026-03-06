@@ -235,8 +235,11 @@ export default function KnowledgeGraph({
         return
       }
 
+      const sourceId = connection.source
+      const targetId = connection.target
+
       startTransition(async () => {
-        const result = await createManualEdge(connection.source, connection.target)
+        const result = await createManualEdge(sourceId, targetId)
         if (result.error) {
           toast.error(result.error)
         } else if (result.edge) {
@@ -276,6 +279,24 @@ export default function KnowledgeGraph({
   const manualEdgeCount = dbEdges.filter((e) => e.is_manual).length
   const autoEdgeCount = dbEdges.filter((e) => !e.is_manual).length
 
+  const handleSelectMode = useCallback(() => {
+    setConnectMode(false)
+    setSelectedEdgeId(null)
+  }, [])
+
+  const handleConnectMode = useCallback(() => {
+    setConnectMode(true)
+    setSelectedNodeId(null)
+  }, [setSelectedNodeId])
+
+  const handleDismissEdge = useCallback(() => {
+    setSelectedEdgeId(null)
+  }, [])
+
+  const handlePaneClick = useCallback(() => {
+    setSelectedEdgeId(null)
+  }, [])
+
   if (initialNodes.length === 0) {
     return <GraphEmptyState />
   }
@@ -292,7 +313,7 @@ export default function KnowledgeGraph({
                 variant={!connectMode ? 'default' : 'ghost'}
                 size="sm"
                 className="h-8 gap-1.5 text-xs"
-                onClick={() => { setConnectMode(false); setSelectedEdgeId(null) }}
+                onClick={handleSelectMode}
               >
                 <MousePointer2 className="h-3.5 w-3.5" />
                 Select
@@ -307,7 +328,7 @@ export default function KnowledgeGraph({
                 variant={connectMode ? 'default' : 'ghost'}
                 size="sm"
                 className={`h-8 gap-1.5 text-xs ${connectMode ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
-                onClick={() => { setConnectMode(true); setSelectedNodeId(null) }}
+                onClick={handleConnectMode}
               >
                 <Link2 className="h-3.5 w-3.5" />
                 Connect
@@ -390,7 +411,7 @@ export default function KnowledgeGraph({
               variant="ghost"
               size="sm"
               className="h-7 text-xs"
-              onClick={() => setSelectedEdgeId(null)}
+              onClick={handleDismissEdge}
             >
               Dismiss
             </Button>
@@ -407,7 +428,7 @@ export default function KnowledgeGraph({
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
         onConnect={connectMode ? onConnect : undefined}
-        onPaneClick={() => setSelectedEdgeId(null)}
+        onPaneClick={handlePaneClick}
         fitView
         minZoom={0.1}
         maxZoom={4}

@@ -45,9 +45,7 @@ export const useNodesStore = create<NodesState>()((set) => ({
   updateNode: (nodeId, updates) =>
     set((state) => ({
       nodes: state.nodes.map((n) =>
-        n.id === nodeId
-          ? { ...n, ...(updates.title && { title: updates.title }), ...(updates.summary && { summary: updates.summary }) }
-          : n
+        n.id === nodeId ? { ...n, ...updates } : n
       ),
     })),
 

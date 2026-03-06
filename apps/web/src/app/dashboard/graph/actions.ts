@@ -110,8 +110,8 @@ export async function updateNode(
   }
 
   const updateData: Record<string, string> = {}
-  if (updates.title?.trim()) updateData.title = updates.title.trim()
-  if (updates.summary?.trim()) updateData.summary = updates.summary.trim()
+  if (updates.title?.trim().length) updateData.title = updates.title.trim()
+  if (updates.summary?.trim().length) updateData.summary = updates.summary.trim()
 
   if (Object.keys(updateData).length === 0) {
     return { error: 'No changes provided' }

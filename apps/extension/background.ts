@@ -74,6 +74,19 @@ function getModels(activeProvider: string, keys: { openai: string; gemini: strin
   return { model, embeddingModel }
 }
 
+function sendProgress(step: string) {
+  try {
+    chrome.runtime.sendMessage({ action: "capture_progress", payload: { step } }, () => {
+      // Ignore errors if popup is closed
+      if (chrome.runtime.lastError) {
+        // Suppress "Receiving end does not exist"
+      }
+    })
+  } catch (err) {
+    // Ignore context invalidated
+  }
+}
+
 async function processCapture(result: CaptureResult, sendResponse: (res: any) => void) {
   try {
     // --- Auth ---
@@ -104,6 +117,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
 
     // --- Step 1: AI Summary & Entity Extraction ---
     console.log("[Nexus] Generating summary & entities...")
+    sendProgress("Generating Summary...")
     const { object } = await generateObject({
       model,
       schema: z.object({
@@ -119,6 +133,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
 
     // --- Step 2: Embedding ---
     console.log("[Nexus] Generating embedding...")
+    sendProgress("Creating Embeddings...")
     const { embedding } = await embed({
       model: embeddingModel,
       value: object.summary,
@@ -129,6 +144,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
 
     // --- Step 3: Save Node ---
     console.log("[Nexus] Saving node...")
+    sendProgress("Saving to Knowledge Graph...")
     const { data: nodeData, error: nodeError } = await supabase
       .from("nodes")
       .insert({
@@ -149,6 +165,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
     // --- Step 4: Save Entities ---
     if (object.entities.length > 0) {
       console.log("[Nexus] Saving", object.entities.length, "entities...")
+      sendProgress(`Saving ${object.entities.length} Entities...`)
       const { error: entityError } = await supabase
         .from("entities")
         .insert(object.entities.map(e => ({

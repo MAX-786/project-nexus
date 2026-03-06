@@ -106,6 +106,8 @@ function getEntityColor(type: string): string {
 
 // ---- Export helpers ----
 
+const MAX_EXPORT_RAW_TEXT_LENGTH = 1000
+
 function exportNodeAsMarkdown(node: DBNode, entities: DBEntity[], rawText?: string | null) {
   const lines = [
     `# ${node.title}`,
@@ -124,7 +126,7 @@ function exportNodeAsMarkdown(node: DBNode, entities: DBEntity[], rawText?: stri
     lines.push(``)
   }
   if (rawText) {
-    lines.push(`## Raw Text (excerpt)`, ``, rawText.substring(0, 1000), ``)
+    lines.push(`## Raw Text (excerpt)`, ``, rawText.substring(0, MAX_EXPORT_RAW_TEXT_LENGTH), ``)
   }
   const blob = new Blob([lines.join('\n')], { type: 'text/markdown' })
   const url = URL.createObjectURL(blob)

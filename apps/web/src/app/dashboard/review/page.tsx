@@ -5,6 +5,8 @@ import { ReviewEmptyState } from '@/components/dashboard/empty-states'
 import { GraduationCap } from 'lucide-react'
 import type { ReviewWithNode } from '@/lib/types'
 
+const MS_PER_DAY = 86400000
+
 function computeStreak(dates: string[]): number {
   if (dates.length === 0) return 0
 
@@ -15,7 +17,7 @@ function computeStreak(dates: string[]): number {
     .reverse()
 
   const today = new Date().toISOString().split('T')[0]
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+  const yesterday = new Date(Date.now() - MS_PER_DAY).toISOString().split('T')[0]
 
   if (uniqueDays[0] !== today && uniqueDays[0] !== yesterday) return 0
 
@@ -23,7 +25,7 @@ function computeStreak(dates: string[]): number {
   for (let i = 1; i < uniqueDays.length; i++) {
     const prev = new Date(uniqueDays[i - 1])
     const curr = new Date(uniqueDays[i])
-    const diffDays = Math.round((prev.getTime() - curr.getTime()) / 86400000)
+    const diffDays = Math.round((prev.getTime() - curr.getTime()) / MS_PER_DAY)
     if (diffDays === 1) {
       streak++
     } else {

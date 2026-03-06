@@ -33,8 +33,8 @@ function IndexPopup() {
         if (timeRemaining <= 0) {
           setJwtStatus("expired")
           setStatus("jwt_expired")
-        } else if (timeRemaining < 60 * 60) {
-          // Less than 1 hour remaining
+        } else if (timeRemaining < 15 * 60) {
+          // Less than 15 minutes remaining
           setJwtStatus("expiring_soon")
         } else {
           setJwtStatus("valid")
@@ -185,7 +185,7 @@ function IndexPopup() {
           {jwtStatus === "expiring_soon" && status !== "jwt_expired" && (
             <div className="p-3 bg-nexus-warning/10 border border-nexus-warning/20 rounded-lg animate-nexus-fade-in space-y-2">
               <p className="text-xs text-nexus-warning font-medium">⚠ Token expiring soon</p>
-              <p className="text-[11px] text-nexus-muted">Your session token will expire within 1 hour.</p>
+              <p className="text-[11px] text-nexus-muted">Your session token will expire within 15 minutes.</p>
               <button
                 onClick={() => {
                   const siteUrl = process.env.PLASMO_PUBLIC_SITE_URL || "http://localhost:3000"
@@ -228,7 +228,7 @@ function IndexPopup() {
           {/* Capture Button */}
           <button
             onClick={handleCapture}
-            disabled={isCapturing}
+            disabled={isCapturing || jwtStatus === "expired"}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-gradient-to-r from-[#7c5cfc] to-[#a855f7] hover:from-[#6b4ce0] hover:to-[#9333ea] shadow-lg shadow-[#7c5cfc33] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
           >
             {isCapturing && (

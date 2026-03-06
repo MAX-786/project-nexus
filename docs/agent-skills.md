@@ -14,7 +14,7 @@ Custom agent skills are stored under the hidden `.agent/skills/` directory at th
 | `nexus-git-workflow` | `nexus-git-workflow` | Git branching, Conventional Commits, and PR structure guidance. |
 | `nexus-github-cli` | `nexus-github-cli` | Running the dev lifecycle via `gh`: boards, milestones, issues, and PRs. |
 | `nexus-nextjs-dev` | `nexus-nextjs-dev` | Next.js App Router + Shadcn UI + Tailwind guidelines for client/server interactions. |
-| `nexus-project-marketing` | `nexus-marketing-growth` | Marketing and launch copy (Reddit, HN), growth strategies, PMF analysis. |
+| `nexus-project-marketing` | `nexus-project-marketing` | Marketing and launch copy (Reddit, HN), growth strategies, PMF analysis. |
 | `nexus-project-rules` | `nexus-project-rules` | Core architectural rules, tech stack, and privacy constraints for Project Nexus. |
 | `nexus-supabase-db` | `nexus-supabase-db` | Supabase/PostgreSQL/pgvector usage, RLS, and vector search logic. |
 | `nexus-ui-ux` | `nexus-ui-ux` | UI/UX guidelines with Tailwind, Shadcn UI, Lucide icons, and extension UI patterns. |

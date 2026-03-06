@@ -1,5 +1,5 @@
 ---
-name: nexus-marketing-growth
+name: nexus-project-marketing
 description: Guidelines for generating marketing copy, Reddit posts, Hacker News launches, and growth strategies for Project Nexus. Use this skill when asked to write public-facing content, launch announcements, or analyze product-market fit.
 ---
 

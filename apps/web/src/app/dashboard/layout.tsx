@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Brain, Rss, Network, GraduationCap, LogOut } from 'lucide-react'
+import { Brain, Rss, Network, GraduationCap, LogOut, Settings } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -86,6 +86,17 @@ export default async function DashboardLayout({
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">{user.email}</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+                    <Link href="/dashboard/settings">
+                      <Settings className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Settings</TooltipContent>
               </Tooltip>
 
               <Separator orientation="vertical" className="h-5" />

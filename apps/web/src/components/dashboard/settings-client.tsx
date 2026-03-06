@@ -55,7 +55,7 @@ export default function SettingsClient({ email, accessToken, initials }: Setting
   }
 
   const maskedToken = accessToken
-    ? `${accessToken.slice(0, 20)}...`
+    ? `••••••••••••••••••••••• ${accessToken.slice(-6)}`
     : 'No active session'
 
   const themeOptions = [

@@ -204,6 +204,8 @@ export default function NodeFeed() {
     getNodeDetail(selectedNodeId).then((result) => {
       if ('data' in result && result.data) setRawText(result.data.raw_text ?? null)
       setIsLoadingDetail(false)
+    }).catch(() => {
+      setIsLoadingDetail(false)
     })
   }, [selectedNodeId])
 

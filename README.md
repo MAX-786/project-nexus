@@ -37,6 +37,12 @@ Project Nexus is an open-source, **Privacy-First (BYOK)** knowledge management s
 
 ---
 
+## 🧠 Agent Skills
+
+AI-facing skill guides live under the hidden `.agent/skills/` directory (one `SKILL.md` per skill). See the full index in [docs/agent-skills.md](./docs/agent-skills.md) for names, paths, and when to use each skill.
+
+---
+
 ## 🏁 Getting Started
 
 ### 1. Prerequisites

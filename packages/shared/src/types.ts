@@ -28,6 +28,8 @@ export interface DBEdge {
   relation_type: string
   weight: number
   user_id: string
+  is_manual?: boolean
+  label?: string | null
 }
 
 export interface ReviewWithNode {

@@ -62,7 +62,9 @@ CREATE TABLE public.edges (
   target_id UUID NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
   relation_type TEXT NOT NULL,
   weight FLOAT DEFAULT 1.0,
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  is_manual BOOLEAN NOT NULL DEFAULT false,
+  label TEXT
 );
 
 -- Prevent duplicate edges between the same pair of nodes for a user

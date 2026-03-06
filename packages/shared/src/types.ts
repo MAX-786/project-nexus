@@ -9,7 +9,7 @@ export interface DBNode {
   url: string
   title: string
   summary: string
-  raw_text: string
+  raw_text?: string | null  // optional, loaded lazily
   created_at: string
 }
 

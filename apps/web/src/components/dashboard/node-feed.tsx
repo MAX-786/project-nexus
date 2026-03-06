@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useCallback } from 'react'
+import { useState, useTransition, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,14 +32,16 @@ import {
   Pencil,
   Check,
   X,
+  Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useNodesStore, useFilteredNodes } from '@/stores/nodes-store'
 import { useUIStore } from '@/stores/ui-store'
-import { deleteNode } from '@/app/dashboard/feed/actions'
+import { deleteNode, getNodeDetail } from '@/app/dashboard/feed/actions'
 import { updateNode } from '@/app/dashboard/graph/actions'
-import type { DBNode } from '@/lib/types'
+import { Skeleton } from '@/components/ui/skeleton'
+import type { DBNode, DBEntity } from '@/lib/types'
 
 // ---- Helpers ----
 
@@ -102,6 +104,74 @@ function getEntityColor(type: string): string {
   return entityTypeColors[type.toLowerCase()] ?? 'bg-primary/10 text-primary border-primary/20'
 }
 
+// ---- Export helpers ----
+
+function exportNodeAsMarkdown(node: DBNode, entities: DBEntity[], rawText?: string | null) {
+  const lines = [
+    `# ${node.title}`,
+    ``,
+    `**URL:** ${node.url}`,
+    `**Captured:** ${new Date(node.created_at).toLocaleDateString()}`,
+    ``,
+    `## Summary`,
+    ``,
+    node.summary,
+    ``,
+  ]
+  if (entities.length > 0) {
+    lines.push(`## Entities`, ``)
+    entities.forEach((e) => lines.push(`- **${e.name}** (${e.type})`))
+    lines.push(``)
+  }
+  if (rawText) {
+    lines.push(`## Raw Text (excerpt)`, ``, rawText.substring(0, 1000), ``)
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/markdown' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${node.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.md`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAllAsJSON(nodes: DBNode[], entities: DBEntity[]) {
+  const data = nodes.map((node) => ({
+    ...node,
+    entities: entities.filter((e) => e.node_id === node.id),
+  }))
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `nexus-export-${new Date().toISOString().split('T')[0]}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function exportAllAsCSV(nodes: DBNode[], entities: DBEntity[]) {
+  const headers = ['id', 'title', 'url', 'summary', 'entities', 'created_at']
+  const rows = nodes.map((node) => {
+    const nodeEntities = entities.filter((e) => e.node_id === node.id).map((e) => e.name).join('; ')
+    return [
+      node.id,
+      `"${node.title.replace(/"/g, '""')}"`,
+      node.url,
+      `"${(node.summary || '').replace(/"/g, '""')}"`,
+      `"${nodeEntities}"`,
+      node.created_at,
+    ].join(',')
+  })
+  const csv = [headers.join(','), ...rows].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `nexus-export-${new Date().toISOString().split('T')[0]}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 // ---- Component ----
 
 export default function NodeFeed() {
@@ -120,6 +190,22 @@ export default function NodeFeed() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
+
+  // Lazy-loaded raw_text for the detail sheet
+  const [rawText, setRawText] = useState<string | null>(null)
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+
+  useEffect(() => {
+    if (!selectedNodeId) {
+      setRawText(null)
+      return
+    }
+    setIsLoadingDetail(true)
+    getNodeDetail(selectedNodeId).then((result) => {
+      if ('data' in result && result.data) setRawText(result.data.raw_text ?? null)
+      setIsLoadingDetail(false)
+    })
+  }, [selectedNodeId])
 
   // Edit state
   const [isEditing, setIsEditing] = useState(false)
@@ -213,6 +299,26 @@ export default function NodeFeed() {
               {searchQuery && ` · ${filteredNodes.length} matching`}
             </p>
           </div>
+          {nodes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs text-muted-foreground"
+                onClick={() => exportAllAsJSON(nodes, entities)}
+              >
+                <Download className="h-3.5 w-3.5" /> JSON
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs text-muted-foreground"
+                onClick={() => exportAllAsCSV(nodes, entities)}
+              >
+                <Download className="h-3.5 w-3.5" /> CSV
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -487,10 +593,18 @@ export default function NodeFeed() {
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                     Raw Text Snippet
                   </h3>
-                  <div className="relative rounded-xl bg-muted/30 border border-border/30 p-4 text-xs text-muted-foreground/80 font-mono h-32 overflow-hidden">
-                    {selectedNode.raw_text?.substring(0, 500)}...
-                    <div className="absolute bottom-0 left-0 w-full h-10 bg-gradient-to-t from-background to-transparent" />
-                  </div>
+                  {isLoadingDetail ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6" />
+                      <Skeleton className="h-4 w-4/6" />
+                    </div>
+                  ) : (
+                    <div className="relative rounded-xl bg-muted/30 border border-border/30 p-4 text-xs text-muted-foreground/80 font-mono h-32 overflow-hidden">
+                      {rawText ? <>{rawText.substring(0, 500)}...</> : <span className="italic">No raw text available.</span>}
+                      <div className="absolute bottom-0 left-0 w-full h-10 bg-gradient-to-t from-background to-transparent" />
+                    </div>
+                  )}
                 </section>
 
                 <div className="flex gap-2">
@@ -498,6 +612,14 @@ export default function NodeFeed() {
                     <a href={selectedNode.url} target="_blank" rel="noreferrer">
                       Open Original Page <ExternalLink className="h-4 w-4" />
                     </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2 border-border/50 hover:border-primary/30"
+                    onClick={() => exportNodeAsMarkdown(selectedNode, nodeEntities(selectedNode.id), rawText)}
+                  >
+                    <Download className="h-4 w-4" />
+                    Export MD
                   </Button>
                   <Button
                     variant="outline"

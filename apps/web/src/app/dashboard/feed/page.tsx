@@ -14,7 +14,7 @@ export default async function FeedPage() {
   const [nodesResult, entitiesResult, edgesResult] = await Promise.all([
     supabase
       .from('nodes')
-      .select('*')
+      .select('id, user_id, url, title, summary, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false, nullsFirst: false })
       .order('id', { ascending: false }),

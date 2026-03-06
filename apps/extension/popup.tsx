@@ -16,6 +16,16 @@ function IndexPopup() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
   const [captureCount, setCaptureCount] = useState(0)
   const [jwtStatus, setJwtStatus] = useState<"valid" | "expiring_soon" | "expired">("valid")
+  const [history, setHistory] = useState<any[]>([])
+
+  // Load history
+  const loadHistory = async () => {
+    const hist = await storage.get<any[]>("capture-history")
+    if (hist) setHistory(hist)
+  }
+  useEffect(() => {
+    loadHistory()
+  }, [])
 
   // Check JWT Status
   useEffect(() => {
@@ -115,6 +125,7 @@ function IndexPopup() {
           setStatus("done")
           setToast({ message: `Captured: ${tabs[0]!.title?.substring(0, 50) || "Page"}`, type: "success" })
           incrementCaptureCount()
+          loadHistory()
           setTimeout(() => setToast(null), 3000)
         } else {
           setStatus("error")
@@ -238,6 +249,34 @@ function IndexPopup() {
             )}
             {statusLabel[status]}
           </button>
+
+          {/* Capture History */}
+          {history.length > 0 && (
+            <div className="mt-4 border-t border-nexus-border pt-3">
+              <div className="flex justify-between items-center mb-2 px-1">
+                <span className="text-xs font-semibold text-nexus-muted">Recent Captures</span>
+                <button
+                  onClick={async () => {
+                    await storage.remove("capture-history")
+                    setHistory([])
+                  }}
+                  className="text-[10px] text-nexus-muted hover:text-nexus-error transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+              <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {history.map((item, idx) => (
+                  <li key={item.id || idx} className="bg-nexus-border/20 p-2.5 rounded-lg border border-nexus-border/50 hover:bg-nexus-border/40 transition-colors">
+                    <a href={item.url} target="_blank" rel="noreferrer" className="block outline-none">
+                      <h4 className="text-xs font-medium text-white mb-1 truncate">{item.title}</h4>
+                      <p className="text-[10px] text-nexus-muted line-clamp-2 leading-tight">{item.summary}</p>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         
         {/* Toast Container */}

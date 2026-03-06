@@ -11,6 +11,7 @@ import AuthProvider from '@/components/providers/auth-provider'
 import DashboardStats from '@/components/dashboard/dashboard-stats'
 import CommandSearch from '@/components/dashboard/command-search'
 import ThemeToggle from '@/components/dashboard/theme-toggle'
+import OnboardingDialog from '@/components/dashboard/onboarding-dialog'
 
 export default async function DashboardLayout({
   children,
@@ -120,6 +121,7 @@ export default async function DashboardLayout({
 
         {/* Main Content */}
         <main className="flex-1 overflow-hidden">{children}</main>
+        <OnboardingDialog />
       </div>
     </AuthProvider>
   )

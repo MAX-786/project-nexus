@@ -212,6 +212,24 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
     }
 
     console.log("[Nexus] ✓ Capture complete!")
+
+    // Save to history
+    try {
+      const history = (await storage.get<any[]>("capture-history")) || []
+      const newEntry = {
+        id: nodeId,
+        title: result.title,
+        url: result.url,
+        summary: object.summary,
+        timestamp: Date.now()
+      }
+      history.unshift(newEntry)
+      if (history.length > 10) history.pop() // Keep last 10 captures
+      await storage.set("capture-history", history)
+    } catch (err) {
+      console.error("[Nexus] Failed to save history:", err)
+    }
+
     sendResponse({ success: true, summary: object.summary })
 
   } catch (err: any) {
@@ -240,5 +258,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "process_capture" && message.payload) {
     processCapture(message.payload, sendResponse)
     return true // async response
+  }
+})
+
+// Listen for keyboard commands
+chrome.commands.onCommand.addListener((command) => {
+  if (command === "capture_page") {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const activeTab = tabs[0]
+      if (activeTab?.id) {
+        chrome.tabs.sendMessage(activeTab.id, { action: "capture_from_popup" }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error("[Nexus] capture shortcut error:", chrome.runtime.lastError)
+          } else {
+            console.log("[Nexus] capture initiated from shortcut.")
+          }
+        })
+      }
+    })
   }
 })

@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Brain, Rss, Network, GraduationCap, LogOut, Menu } from 'lucide-react'
+import { Brain, Rss, Network, GraduationCap, LogOut, Settings, Menu } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -18,6 +18,7 @@ import AuthProvider from '@/components/providers/auth-provider'
 import DashboardStats from '@/components/dashboard/dashboard-stats'
 import CommandSearch from '@/components/dashboard/command-search'
 import ThemeToggle from '@/components/dashboard/theme-toggle'
+import OnboardingDialog from '@/components/dashboard/onboarding-dialog'
 
 export default async function DashboardLayout({
   children,
@@ -150,6 +151,17 @@ export default async function DashboardLayout({
                   <TooltipContent side="bottom">{user.email}</TooltipContent>
                 </Tooltip>
 
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+                    <Link href="/dashboard/settings">
+                      <Settings className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Settings</TooltipContent>
+              </Tooltip>
+
                 <Separator orientation="vertical" className="h-5" />
 
                 <form action="/auth/signout" method="post">
@@ -172,6 +184,7 @@ export default async function DashboardLayout({
 
         {/* Main Content */}
         <main className="flex-1 overflow-hidden">{children}</main>
+        <OnboardingDialog />
       </div>
     </AuthProvider>
   )

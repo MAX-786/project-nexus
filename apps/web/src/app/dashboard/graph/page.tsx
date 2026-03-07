@@ -12,7 +12,7 @@ export default async function GraphPage() {
   if (!user) return null
 
   const [nodesResult, edgesResult, entitiesResult] = await Promise.all([
-    supabase.from('nodes').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+    supabase.from('nodes').select('id, user_id, url, title, summary, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('edges').select('*').eq('user_id', user.id),
     supabase.from('entities').select('*').eq('user_id', user.id),
   ])

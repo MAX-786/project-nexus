@@ -184,6 +184,61 @@
   animation: nexus-slide-in 0.3s ease-out both;
 }
 
+@keyframes nexus-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes nexus-orbit {
+  from { transform: rotate(0deg) translateX(40px) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(40px) rotate(-360deg); }
+}
+
+@keyframes nexus-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes nexus-spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-nexus-float {
+  animation: nexus-float 4s ease-in-out infinite;
+}
+
+.animate-nexus-float-slow {
+  animation: nexus-float 6s ease-in-out infinite;
+}
+
+.animate-nexus-float-delay {
+  animation: nexus-float 5s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+.animate-nexus-float-delay-2 {
+  animation: nexus-float 4.5s ease-in-out infinite;
+  animation-delay: 0.8s;
+}
+
+.animate-nexus-orbit {
+  animation: nexus-orbit 8s linear infinite;
+}
+
+.animate-nexus-orbit-slow {
+  animation: nexus-orbit 12s linear infinite reverse;
+}
+
+.animate-nexus-gradient {
+  background-size: 200% 200%;
+  animation: nexus-gradient-shift 6s ease infinite;
+}
+
+.animate-nexus-spin-slow {
+  animation: nexus-spin-slow 20s linear infinite;
+}
+
 /* Stagger children animation */
 .stagger-children>* {
   animation: nexus-fade-in 0.4s ease-out forwards;

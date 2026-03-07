@@ -42,3 +42,23 @@ export async function deleteNode(nodeId: string) {
   revalidatePath('/dashboard/review')
   return { success: true }
 }
+
+export async function getNodeDetail(nodeId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data, error } = await supabase
+    .from('nodes')
+    .select('id, raw_text')
+    .eq('id', nodeId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (error) return { error: error.message }
+  return { data }
+}

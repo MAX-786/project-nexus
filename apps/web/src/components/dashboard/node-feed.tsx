@@ -357,7 +357,7 @@ export default function NodeFeed() {
         ) : (
           <div
             className="p-4 sm:p-6 relative w-full"
-            style={{ height: virtualizer.getTotalSize() + 32 }}
+            style={{ height: virtualizer.getTotalSize() }}
           >
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const node = filteredNodes[virtualRow.index]

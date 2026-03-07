@@ -102,9 +102,9 @@ export default function GraphDashboard({
   }, [])
 
   return (
-    <div className="flex h-full w-full">
-      {/* Left Panel: Feed */}
-      <div className="w-[400px] border-r bg-slate-50 flex flex-col items-center p-4">
+    <div className="flex flex-col md:flex-row h-full w-full">
+      {/* Left Panel: Feed (Top on mobile, Left on desktop) */}
+      <div className="w-full md:w-[400px] border-b md:border-b-0 md:border-r bg-slate-50 flex flex-col items-center p-4 h-1/2 md:h-full shrinks-0">
         <h2 className="font-semibold text-lg py-2 self-start flex gap-2 items-center">
           <Network size={18} /> Feed
         </h2>
@@ -138,8 +138,8 @@ export default function GraphDashboard({
         )}
       </div>
 
-      {/* Right Panel: Graph */}
-      <div className="flex-1 h-full w-full bg-slate-50/50">
+      {/* Right Panel: Graph (Hidden on mobile) */}
+      <div className="hidden md:block flex-1 h-full w-full bg-slate-50/50">
         <ReactFlow
           nodes={nodes}
           edges={edges}

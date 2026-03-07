@@ -16,6 +16,14 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import {
+  ReactFlow,
+  Background,
+  BackgroundVariant,
+  Node as FlowNode,
+  Edge as FlowEdge,
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+import {
   ExternalLink,
   Clock,
   Tag,
@@ -33,6 +41,8 @@ import {
   Check,
   X,
   Download,
+  Share,
+  Copy,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -291,7 +301,7 @@ export default function NodeFeed() {
   return (
     <>
       {/* Feed header */}
-      <div className="px-6 py-4 border-b border-border/50 shrink-0">
+      <div className="px-4 sm:px-6 py-4 border-b border-border/50 shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -328,7 +338,7 @@ export default function NodeFeed() {
 
       {/* Scrollable card list */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="p-6 flex flex-col gap-4">
+        <div className="p-4 sm:p-6 flex flex-col gap-4">
           {filteredNodes.length === 0 && searchQuery ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
               <Search className="h-8 w-8 text-muted-foreground mb-3" />
@@ -571,20 +581,85 @@ export default function NodeFeed() {
                     <Network className="h-3.5 w-3.5" /> Connected Nodes ({connectedNodes.length})
                   </h3>
                   {connectedNodes.length > 0 ? (
-                    <div className="space-y-2">
-                      {connectedNodes.map((cn) => (
-                        <div
-                          key={cn.id}
-                          className="flex items-center gap-3 rounded-lg bg-muted/50 border border-border/30 p-3 text-sm hover:border-primary/30 transition-colors cursor-pointer"
-                          onClick={() => setSelectedNodeId(cn.id)}
+                    <div className="space-y-4">
+                      {/* Interactive Mini-Graph */}
+                      <div className="h-64 rounded-xl border border-border/50 bg-background overflow-hidden relative">
+                        <ReactFlow
+                          nodes={[
+                            {
+                              id: selectedNode.id,
+                              position: { x: 200, y: 100 },
+                              data: { label: selectedNode.title },
+                              style: {
+                                background: 'oklch(0.637 0.237 275 / 15%)',
+                                border: '1px solid oklch(0.637 0.237 275 / 50%)',
+                                borderRadius: '8px',
+                                padding: '8px 12px',
+                                fontSize: '11px',
+                                width: 150,
+                                textAlign: 'center' as const,
+                              },
+                            },
+                            ...connectedNodes.map((cn, i) => {
+                              // Arrange connected nodes in a semicircle below
+                              const angle = Math.PI + (Math.PI / (connectedNodes.length + 1)) * (i + 1)
+                              return {
+                                id: cn.id,
+                                position: {
+                                  x: 200 + Math.cos(angle) * 150,
+                                  y: 100 - Math.sin(angle) * 80,
+                                },
+                                data: { label: cn.title },
+                                style: {
+                                  background: 'hsl(var(--card))',
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '8px',
+                                  padding: '8px 12px',
+                                  fontSize: '10px',
+                                  width: 120,
+                                  textAlign: 'center' as const,
+                                },
+                              }
+                            }),
+                          ]}
+                          edges={connectedNodes.map(cn => ({
+                            id: `e-${selectedNode.id}-${cn.id}`,
+                            source: selectedNode.id,
+                            target: cn.id,
+                            animated: true,
+                            style: { stroke: 'hsl(var(--primary) / 0.4)', strokeWidth: 1.5 },
+                          }))}
+                          onNodeClick={(_, node) => {
+                            if (node.id !== selectedNode.id) {
+                              setSelectedNodeId(node.id)
+                            }
+                          }}
+                          fitView
+                          panOnDrag={false}
+                          zoomOnScroll={false}
+                          nodesDraggable={false}
+                          nodesConnectable={false}
                         >
-                          <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium truncate">{cn.title}</p>
-                            <p className="text-xs text-muted-foreground truncate">{getDomain(cn.url)}</p>
+                          <Background color="hsl(var(--muted-foreground) / 0.2)" variant={BackgroundVariant.Dots} size={1} />
+                        </ReactFlow>
+                      </div>
+                      
+                      {/* List of connections */}
+                      <div className="space-y-2">
+                        {connectedNodes.map((cn) => (
+                          <div
+                            key={cn.id}
+                            className="flex items-center gap-3 rounded-lg bg-muted/50 border border-border/30 p-3 text-sm hover:border-primary/30 transition-colors cursor-pointer"
+                            onClick={() => setSelectedNodeId(cn.id)}
+                          >
+                            <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium truncate">{cn.title}</p>
+                              <p className="text-xs text-muted-foreground truncate">{getDomain(cn.url)}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">No semantic connections found yet.</p>
@@ -611,11 +686,29 @@ export default function NodeFeed() {
                   )}
                 </section>
 
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1 gap-2 border-border/50 hover:border-primary/30" asChild>
+                <div className="flex gap-2 flex-wrap">
+                  <Button variant="outline" className="flex-1 gap-2 border-border/50 hover:border-primary/30 min-w-[140px]" asChild>
                     <a href={selectedNode.url} target="_blank" rel="noreferrer">
-                      Open Original Page <ExternalLink className="h-4 w-4" />
+                      Original Page <ExternalLink className="h-4 w-4" />
                     </a>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 gap-2 border-border/50 hover:bg-muted min-w-[140px]"
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: selectedNode.title,
+                          text: selectedNode.summary,
+                          url: selectedNode.url,
+                        }).catch(console.error)
+                      } else {
+                        navigator.clipboard.writeText(selectedNode.url)
+                        toast.success("Link copied to clipboard!")
+                      }
+                    }}
+                  >
+                    Share <Share className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
@@ -627,7 +720,7 @@ export default function NodeFeed() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="gap-2 border-border/50 text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                    className="gap-2 border-border/50 text-destructive hover:bg-destructive/10 hover:border-destructive/30 shrink-0"
                     onClick={(e) => handleDelete(selectedNode.id, e)}
                     disabled={deletingId === selectedNode.id}
                   >
@@ -636,7 +729,6 @@ export default function NodeFeed() {
                     ) : (
                       <Trash2 className="h-4 w-4" />
                     )}
-                    Delete
                   </Button>
                 </div>
               </div>

@@ -267,14 +267,42 @@ chrome.commands.onCommand.addListener((command) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTab = tabs[0]
       if (activeTab?.id) {
+        // Set visual indicator that capture started
+        chrome.action.setBadgeText({ text: "...", tabId: activeTab.id })
+        chrome.action.setBadgeBackgroundColor({ color: "#7c5cfc", tabId: activeTab.id })
+
         chrome.tabs.sendMessage(activeTab.id, { action: "capture_from_popup" }, (response) => {
           if (chrome.runtime.lastError) {
             console.error("[Nexus] capture shortcut error:", chrome.runtime.lastError)
+            chrome.action.setBadgeText({ text: "ERR", tabId: activeTab.id })
+            chrome.action.setBadgeBackgroundColor({ color: "#ef4444", tabId: activeTab.id })
+            setTimeout(() => {
+              chrome.action.setBadgeText({ text: "", tabId: activeTab.id })
+            }, 3000)
           } else {
             console.log("[Nexus] capture initiated from shortcut.")
           }
         })
       }
     })
+  }
+})
+
+// Listen for messages from content script for shortcut response
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "shortcut_capture_complete") {
+    const tabId = sender.tab?.id
+    if (tabId) {
+      if (message.success) {
+        chrome.action.setBadgeText({ text: "✓", tabId })
+        chrome.action.setBadgeBackgroundColor({ color: "#10b981", tabId })
+      } else {
+        chrome.action.setBadgeText({ text: "ERR", tabId })
+        chrome.action.setBadgeBackgroundColor({ color: "#ef4444", tabId })
+      }
+      setTimeout(() => {
+        chrome.action.setBadgeText({ text: "", tabId })
+      }, 4000)
+    }
   }
 })

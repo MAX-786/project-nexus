@@ -1,8 +1,10 @@
 'use client'
 
-import React, { useState, useMemo, useCallback, useTransition } from 'react'
+import React, { useState, useMemo, useCallback, useTransition, useEffect } from 'react'
 import {
   ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
   Controls,
   Background,
   MiniMap,
@@ -30,6 +32,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Network,
@@ -45,6 +48,7 @@ import {
   Loader2,
   Sparkles,
   Hand,
+  AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -52,6 +56,7 @@ import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
 import { useUIStore } from '@/stores/ui-store'
 import { GraphEmptyState } from './empty-states'
 import { createManualEdge, deleteManualEdge } from '@/app/dashboard/graph/actions'
+import { getLocalCluster } from '@/lib/graph-cluster'
 
 interface KnowledgeGraphProps {
   initialNodes: DBNode[]
@@ -109,7 +114,12 @@ function NexusNode({ data }: NodeProps) {
 
 const nodeTypes = { nexusNode: NexusNode }
 
-export default function KnowledgeGraph({
+const LARGE_GRAPH_THRESHOLD = 500
+const DEFAULT_CLUSTER_DEPTH = 2
+const FIT_VIEW_DURATION = 800
+const FIT_VIEW_PADDING = 0.2
+
+function KnowledgeGraphInner({
   initialNodes = [],
   initialEdges = [],
   initialEntities = [],
@@ -117,14 +127,25 @@ export default function KnowledgeGraph({
   const selectedNodeId = useUIStore((s) => s.selectedNodeId)
   const setSelectedNodeId = useUIStore((s) => s.setSelectedNodeId)
   const selectedDBNode = initialNodes.find((n) => n.id === selectedNodeId)
+  const { fitView } = useReactFlow()
 
   // Connect mode state
   const [connectMode, setConnectMode] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
 
+  // Cluster pagination state
+  const [showAll, setShowAll] = useState(false)
+
   // Track DB edges for manual edge detection
   const [dbEdges, setDbEdges] = useState<DBEdge[]>(initialEdges)
+
+  // BFS cluster computation
+  const isClusterActive = !showAll && !!selectedNodeId
+  const clusterNodeIds = useMemo(() => {
+    if (!isClusterActive || !selectedNodeId) return null
+    return getLocalCluster(selectedNodeId, dbEdges, DEFAULT_CLUSTER_DEPTH)
+  }, [isClusterActive, selectedNodeId, dbEdges])
 
   // Map DB Nodes to React Flow Nodes — use a grid layout instead of circular
   const initialFlowNodes: FlowNode[] = useMemo(() => {
@@ -184,6 +205,25 @@ export default function KnowledgeGraph({
 
   const [nodes, setNodes] = useState<FlowNode[]>(initialFlowNodes)
   const [edges, setEdges] = useState<FlowEdge[]>(initialFlowEdges)
+
+  // Compute visible nodes/edges based on cluster filter
+  const visibleNodes = useMemo(() => {
+    if (!clusterNodeIds) return nodes
+    return nodes.filter((n) => clusterNodeIds.has(n.id))
+  }, [nodes, clusterNodeIds])
+
+  const visibleEdges = useMemo(() => {
+    if (!clusterNodeIds) return edges
+    return edges.filter((e) => clusterNodeIds.has(e.source) && clusterNodeIds.has(e.target))
+  }, [edges, clusterNodeIds])
+
+  // Smooth zoom-to-fit when cluster changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fitView({ duration: FIT_VIEW_DURATION, padding: FIT_VIEW_PADDING })
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [clusterNodeIds, fitView])
 
   // Update nodes when connect mode changes
   React.useEffect(() => {
@@ -297,6 +337,20 @@ export default function KnowledgeGraph({
     setSelectedEdgeId(null)
   }, [])
 
+  // Show All toggle handler with large graph warning
+  const handleShowAllToggle = useCallback(
+    (checked: boolean) => {
+      if (checked && initialNodes.length >= LARGE_GRAPH_THRESHOLD) {
+        toast.warning(
+          `Loading all ${initialNodes.length} nodes may affect performance`,
+          { icon: <AlertTriangle className="h-4 w-4" />, duration: 4000 }
+        )
+      }
+      setShowAll(checked)
+    },
+    [initialNodes.length]
+  )
+
   if (initialNodes.length === 0) {
     return <GraphEmptyState />
   }
@@ -362,6 +416,42 @@ export default function KnowledgeGraph({
         </div>
       </div>
 
+      {/* Cluster Controls — Top Right */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        {/* Node Count Indicator */}
+        <div className="flex items-center gap-2 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-3 py-1.5 shadow-lg">
+          <Network className="h-3 w-3 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">
+            Showing {visibleNodes.length} of {initialNodes.length} nodes
+          </span>
+        </div>
+
+        {/* Show All Toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-2 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-3 py-1.5 shadow-lg">
+              <label
+                htmlFor="show-all-toggle"
+                className="text-xs text-muted-foreground cursor-pointer select-none"
+              >
+                Show All
+              </label>
+              <Switch
+                id="show-all-toggle"
+                checked={showAll}
+                onCheckedChange={handleShowAllToggle}
+                size="sm"
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {showAll
+              ? 'Showing full graph — toggle off to view local cluster'
+              : 'Toggle to show all nodes instead of the local cluster'}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
       {/* Connect Mode Banner */}
       {connectMode && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-4 py-2 shadow-lg backdrop-blur-sm">
@@ -420,8 +510,8 @@ export default function KnowledgeGraph({
       })()}
 
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={visibleNodes}
+        edges={visibleEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -596,5 +686,13 @@ export default function KnowledgeGraph({
         </SheetContent>
       </Sheet>
     </div>
+  )
+}
+
+export default function KnowledgeGraph(props: KnowledgeGraphProps) {
+  return (
+    <ReactFlowProvider>
+      <KnowledgeGraphInner {...props} />
+    </ReactFlowProvider>
   )
 }

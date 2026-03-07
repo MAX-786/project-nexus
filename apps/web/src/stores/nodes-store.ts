@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+
 import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
 
 interface NodesState {

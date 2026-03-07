@@ -1,20 +1,18 @@
 'use client'
 
 import { useState, useTransition, useCallback, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { FeedEmptyState } from './empty-states'
-import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+
+import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   ReactFlow,
   Background,
@@ -23,6 +21,8 @@ import {
   Edge as FlowEdge,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { CollectionTaggerDialog } from './collection-tagger-dialog'
+import { createClient } from '@/utils/supabase/client'
 import {
   ExternalLink,
   Clock,
@@ -43,15 +43,37 @@ import {
   Download,
   Share,
   Copy,
+  Filter,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useNodesStore, useFilteredNodes } from '@/stores/nodes-store'
 import { useUIStore } from '@/stores/ui-store'
-import { deleteNode, getNodeDetail } from '@/app/dashboard/feed/actions'
+import { deleteNode, getNodeDetail, batchDeleteNodes } from '@/app/dashboard/feed/actions'
 import { updateNode } from '@/app/dashboard/graph/actions'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { DBNode, DBEntity } from '@/lib/types'
+import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import type { DBNode, DBEntity, DBCollection } from '@/lib/types'
+
+import { FeedEmptyState } from './empty-states'
 
 // ---- Helpers ----
 
@@ -203,6 +225,32 @@ export default function NodeFeed() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
+  // Multi-select state
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
+  const [showBatchDeleteDialog, setShowBatchDeleteDialog] = useState(false)
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false)
+  const [showTagDialog, setShowTagDialog] = useState(false)
+
+  // Collections state
+  const [collections, setCollections] = useState<DBCollection[]>([])
+  const [nodeCollections, setNodeCollections] = useState<{node_id: string, collection_id: string}[]>([])
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
+
+  // Fetch collections data
+  const loadCollectionsData = useCallback(async () => {
+    const supabase = createClient()
+    const [{ data: cols }, { data: nodeCols }] = await Promise.all([
+      supabase.from('collections').select('*').order('name'),
+      supabase.from('node_collections').select('node_id, collection_id')
+    ])
+    if (cols) setCollections(cols)
+    if (nodeCols) setNodeCollections(nodeCols)
+  }, [])
+
+  useEffect(() => {
+    loadCollectionsData()
+  }, [loadCollectionsData])
+
   // Lazy-loaded raw_text for the detail sheet
   const [rawText, setRawText] = useState<string | null>(null)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
@@ -266,6 +314,44 @@ export default function NodeFeed() {
     })
   }
 
+  const handleBatchDelete = () => {
+    if (selectedNodeIds.size === 0) return
+    setIsBatchDeleting(true)
+    const ids = Array.from(selectedNodeIds)
+
+    startTransition(async () => {
+      const result = await batchDeleteNodes(ids)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        ids.forEach(id => removeNodeFromStore(id))
+        toast.success(`${ids.length} nodes deleted successfully`)
+        setSelectedNodeIds(new Set())
+        if (selectedNodeId && selectedNodeIds.has(selectedNodeId)) {
+          setSelectedNodeId(null)
+        }
+      }
+      setIsBatchDeleting(false)
+      setShowBatchDeleteDialog(false)
+    })
+  }
+
+  const toggleSelection = (e: React.MouseEvent | React.ChangeEvent, id: string) => {
+    e.stopPropagation()
+    const newSet = new Set(selectedNodeIds)
+    if (newSet.has(id)) newSet.delete(id)
+    else newSet.add(id)
+    setSelectedNodeIds(newSet)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedNodeIds.size === filteredNodes.length) {
+      setSelectedNodeIds(new Set())
+    } else {
+      setSelectedNodeIds(new Set(filteredNodes.map(n => n.id)))
+    }
+  }
+
   const startEditing = (node: DBNode) => {
     setEditTitle(node.title)
     setEditSummary(node.summary ?? '')
@@ -298,6 +384,19 @@ export default function NodeFeed() {
     return <FeedEmptyState />
   }
 
+  // Apply collection filter
+  let displayNodes = filteredNodes
+  if (selectedCollectionId) {
+    const nodeIdsInCollection = new Set(
+      nodeCollections
+        .filter(nc => nc.collection_id === selectedCollectionId)
+        .map(nc => nc.node_id)
+    )
+    displayNodes = displayNodes.filter(n => nodeIdsInCollection.has(n.id))
+  }
+
+  const selectedCollection = collections.find(c => c.id === selectedCollectionId)
+
   return (
     <>
       {/* Feed header */}
@@ -310,10 +409,43 @@ export default function NodeFeed() {
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               {nodes.length} {nodes.length === 1 ? 'memory' : 'memories'} captured
-              {searchQuery && ` · ${filteredNodes.length} matching`}
+              {searchQuery && ` · ${filteredNodes.length} matching search`}
+              {selectedCollection && ` · filtered by ${selectedCollection.name}`}
             </p>
           </div>
-          {nodes.length > 0 && (
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
+                  <Filter className="h-3.5 w-3.5" /> 
+                  <span className="max-w-[100px] truncate">
+                    {selectedCollection ? selectedCollection.name : 'Collections'}
+                  </span>
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[180px]">
+                <DropdownMenuItem 
+                  onClick={() => setSelectedCollectionId(null)}
+                  className={!selectedCollectionId ? 'bg-primary/10 text-primary font-medium' : ''}
+                >
+                  All Memories
+                </DropdownMenuItem>
+                {collections.length > 0 && <Separator className="my-1" />}
+                {collections.map(c => (
+                  <DropdownMenuItem 
+                    key={c.id} 
+                    onClick={() => setSelectedCollectionId(c.id)}
+                    className={c.id === selectedCollectionId ? 'bg-primary/10 text-primary font-medium flex items-center gap-2' : 'flex items-center gap-2'}
+                  >
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color || '#64748b' }} />
+                    <span className="truncate">{c.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {nodes.length > 0 && (
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -333,31 +465,58 @@ export default function NodeFeed() {
               </Button>
             </div>
           )}
+          </div>
         </div>
       </div>
 
       {/* Scrollable card list */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="p-4 sm:p-6 flex flex-col gap-4">
-          {filteredNodes.length === 0 && searchQuery ? (
+      <div className="flex-1 overflow-y-auto min-h-0 relative">
+        <div className="p-4 sm:p-6 flex flex-col gap-4 pb-24">
+          {displayNodes.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
               <Search className="h-8 w-8 text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">No results for &quot;{searchQuery}&quot;</p>
+              <p className="text-sm text-muted-foreground">
+                {searchQuery ? `No results for "${searchQuery}"` : 'No memories in this collection.'}
+              </p>
             </div>
           ) : (
-            filteredNodes.map((node) => {
+            displayNodes.map((node) => {
               const ne = nodeEntities(node.id)
               const cc = connectionCount(node.id)
               const isDeleting = deletingId === node.id
               return (
                 <Card
                   key={node.id}
-                  className="group cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-[oklch(0.637_0.237_275/12%)]"
-                  onClick={() => setSelectedNodeId(node.id)}
+                  className={`group cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-[oklch(0.637_0.237_275/12%)] relative ${
+                    selectedNodeIds.has(node.id) ? 'border-primary/50 bg-primary/5' : 'hover:border-primary/30 hover:bg-card/80'
+                  }`}
+                  onClick={(e) => {
+                    // If in selection mode and clicking the card body, toggle selection instead of opening sheet
+                    if (selectedNodeIds.size > 0) {
+                      toggleSelection(e, node.id)
+                    } else {
+                      setSelectedNodeId(node.id)
+                    }
+                  }}
                 >
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-2 relative z-10">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div 
+                          className={`mt-1 h-6 w-6 shrink-0 flex items-center justify-center rounded-md transition-all ${
+                            selectedNodeIds.has(node.id) || selectedNodeIds.size > 0 
+                              ? 'opacity-100' 
+                              : 'opacity-0 group-hover:opacity-100'
+                          } hover:bg-primary/10`}
+                          onClick={(e) => toggleSelection(e, node.id)}
+                        >
+                          <Checkbox 
+                            checked={selectedNodeIds.has(node.id)} 
+                            onCheckedChange={() => {}} // React handles this in onClick of wrapper
+                            className="pointer-events-none data-[state=unchecked]:bg-background data-[state=unchecked]:border-primary/40 data-[state=unchecked]:shadow-sm"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
                         <CardTitle className="text-base leading-snug group-hover:text-primary transition-colors line-clamp-2">
                           {node.title}
                         </CardTitle>
@@ -375,7 +534,8 @@ export default function NodeFeed() {
                           <span className="truncate">{getDomain(node.url)}</span>
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="flex items-center gap-1 text-xs text-muted-foreground cursor-default">
@@ -456,6 +616,98 @@ export default function NodeFeed() {
           )}
         </div>
       </div>
+
+      {/* Floating Action Bar */}
+      {selectedNodeIds.size > 0 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-5 fade-in duration-200">
+          <div className="bg-background/95 backdrop-blur-xl border border-border shadow-xl rounded-full px-5 py-2.5 flex items-center gap-3">
+            <div className="flex items-center gap-3 px-2">
+              <Checkbox 
+                checked={selectedNodeIds.size === filteredNodes.length && filteredNodes.length > 0} 
+                onCheckedChange={toggleSelectAll} 
+              />
+              <div className="flex items-center">
+                <Badge variant="secondary" className="rounded-full px-2 leading-none w-6 h-6 flex items-center justify-center mr-2">{selectedNodeIds.size}</Badge>
+                <span className="text-sm font-medium">Selected</span>
+              </div>
+            </div>
+            
+            <Separator orientation="vertical" className="h-6 mx-1 bg-border/50" />
+            
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="rounded-full h-8 px-3 gap-1.5 hover:bg-primary/10 hover:text-primary transition-colors"
+                onClick={() => setShowTagDialog(true)}
+              >
+                <Tag className="w-3.5 h-3.5" />
+                <span>Tag</span>
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="rounded-full h-8 px-3 gap-1.5 transition-colors"
+                onClick={() => {
+                  const selectedNodes = nodes.filter(n => selectedNodeIds.has(n.id))
+                  exportAllAsJSON(selectedNodes, entities)
+                }}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export</span>
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="rounded-full h-8 px-3 gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors"
+                onClick={() => setShowBatchDeleteDialog(true)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </Button>
+            </div>
+            
+            <Separator orientation="vertical" className="h-6 mx-1 bg-border/50" />
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full h-8 w-8 hover:bg-muted text-muted-foreground" 
+              onClick={() => setSelectedNodeIds(new Set())}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Delete Confirmation Dialog */}
+      <AlertDialog open={showBatchDeleteDialog} onOpenChange={setShowBatchDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedNodeIds.size} node{selectedNodeIds.size === 1 ? '' : 's'}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBatchDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault()
+                handleBatchDelete()
+              }} 
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              disabled={isBatchDeleting}
+            >
+              {isBatchDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete {selectedNodeIds.size} items
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Single Sheet for node details */}
       <Sheet open={!!selectedNodeId} onOpenChange={handleSheetChange}>
@@ -736,6 +988,17 @@ export default function NodeFeed() {
           )}
         </SheetContent>
       </Sheet>
+      {/* Collection Tagger Dialog */}
+      <CollectionTaggerDialog
+        open={showTagDialog}
+        onOpenChange={setShowTagDialog}
+        selectedNodeIds={Array.from(selectedNodeIds)}
+        onSuccess={() => {
+          setSelectedNodeIds(new Set())
+          loadCollectionsData()
+        }}
+      />
     </>
   )
 }
+

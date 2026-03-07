@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
 import { Brain, ArrowRight, Sparkles, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { useState } from 'react'
+import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { toast } from 'sonner'
 import { createClient } from '@/utils/supabase/client'
 
 export default function SignupPage() {

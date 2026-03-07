@@ -1,11 +1,16 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { Brain, Rss, Network, GraduationCap, LogOut, Settings, Menu } from 'lucide-react'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+
+import CommandSearch from '@/components/dashboard/command-search'
+import DashboardStats from '@/components/dashboard/dashboard-stats'
+import NavTab from '@/components/dashboard/nav-tab'
+import OnboardingDialog from '@/components/dashboard/onboarding-dialog'
+import ThemeToggle from '@/components/dashboard/theme-toggle'
+import AuthProvider from '@/components/providers/auth-provider'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -13,12 +18,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import NavTab from '@/components/dashboard/nav-tab'
-import AuthProvider from '@/components/providers/auth-provider'
-import DashboardStats from '@/components/dashboard/dashboard-stats'
-import CommandSearch from '@/components/dashboard/command-search'
-import ThemeToggle from '@/components/dashboard/theme-toggle'
-import OnboardingDialog from '@/components/dashboard/onboarding-dialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { createClient } from '@/utils/supabase/server'
 
 export default async function DashboardLayout({
   children,

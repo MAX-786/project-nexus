@@ -1,6 +1,5 @@
 'use client'
 
-import React, { useState, useMemo, useCallback, useTransition, useEffect } from 'react'
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -21,19 +20,6 @@ import {
   Connection,
   MarkerType,
 } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
-
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Network,
   ExternalLink,
@@ -50,13 +36,29 @@ import {
   Hand,
   AlertTriangle,
 } from 'lucide-react'
+import React, { useState, useMemo, useCallback, useTransition, useEffect } from 'react'
+import '@xyflow/react/dist/style.css'
+
 import { toast } from 'sonner'
 
+import { createManualEdge, deleteManualEdge } from '@/app/dashboard/graph/actions'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Switch } from '@/components/ui/switch'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { getLocalCluster } from '@/lib/graph-cluster'
 import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
 import { useUIStore } from '@/stores/ui-store'
+
 import { GraphEmptyState } from './empty-states'
-import { createManualEdge, deleteManualEdge } from '@/app/dashboard/graph/actions'
-import { getLocalCluster } from '@/lib/graph-cluster'
+
 
 interface KnowledgeGraphProps {
   initialNodes: DBNode[]

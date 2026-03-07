@@ -1,6 +1,7 @@
-import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
+import { createClient } from "@/utils/supabase/server";
 
 // Input validation schema according to nexus-supabase-db rules
 const searchSchema = z.object({

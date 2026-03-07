@@ -1,6 +1,7 @@
 'use client'
 
 import { Brain, Tag, Network, GraduationCap } from 'lucide-react'
+
 import { useNodesStore } from '@/stores/nodes-store'
 
 interface DashboardStatsProps {

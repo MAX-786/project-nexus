@@ -1,7 +1,5 @@
 'use client'
 
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import {
   Rss,
   Network,
@@ -10,6 +8,9 @@ import {
   Puzzle,
   Sparkles,
 } from 'lucide-react'
+import Link from 'next/link'
+
+import { Button } from '@/components/ui/button'
 
 // ─── Feed Empty State ────────────────────────────────────────────────────────
 

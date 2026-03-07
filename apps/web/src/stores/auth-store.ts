@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+
 import type { AuthUser } from '@/lib/types'
 
 interface AuthState {

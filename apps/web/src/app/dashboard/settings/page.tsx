@@ -1,8 +1,9 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+
 import SettingsClient from '@/components/dashboard/settings-client'
+import { createClient } from '@/utils/supabase/server'
 
 export default async function SettingsPage() {
   const supabase = await createClient()

@@ -1,16 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import {
   Brain,
   Puzzle,
@@ -21,6 +10,18 @@ import {
   CheckCircle2,
   X,
 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Progress } from '@/components/ui/progress'
 
 const ONBOARDING_KEY = 'nexus-onboarding-complete'
 const BRAND_GRADIENT = 'from-[oklch(0.637_0.237_275)] to-[oklch(0.7_0.2_310)]'

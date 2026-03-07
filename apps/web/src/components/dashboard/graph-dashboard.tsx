@@ -1,6 +1,5 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
 import {
   ReactFlow,
   Controls,
@@ -13,13 +12,16 @@ import {
   Edge as FlowEdge,
   BackgroundVariant
 } from '@xyflow/react'
+import React, { useState, useMemo, useCallback } from 'react'
 import '@xyflow/react/dist/style.css'
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { ScrollArea } from '@/components/ui/scroll-area'
+
 import { ExternalLink, Link as LinkIcon, Network } from 'lucide-react'
+
 import {
   Sheet,
   SheetContent,

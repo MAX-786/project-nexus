@@ -1,8 +1,9 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import { useAuthStore } from '@/stores/auth-store'
+
 import type { AuthUser } from '@/lib/types'
+import { useAuthStore } from '@/stores/auth-store'
 
 interface AuthProviderProps {
   user: AuthUser | null

@@ -1,6 +1,6 @@
-import { createClient } from '@/utils/supabase/server'
 import NodeFeed from '@/components/dashboard/node-feed'
 import NodesHydrator from '@/components/providers/nodes-hydrator'
+import { createClient } from '@/utils/supabase/server'
 
 export default async function FeedPage() {
   const supabase = await createClient()

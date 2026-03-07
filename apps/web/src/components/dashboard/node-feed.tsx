@@ -503,17 +503,17 @@ export default function NodeFeed() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div 
-                          className={`mt-1 h-5 w-5 shrink-0 flex items-center justify-center ${
+                          className={`mt-1 h-6 w-6 shrink-0 flex items-center justify-center rounded-md transition-all ${
                             selectedNodeIds.has(node.id) || selectedNodeIds.size > 0 
                               ? 'opacity-100' 
                               : 'opacity-0 group-hover:opacity-100'
-                          } transition-opacity`}
+                          } hover:bg-primary/10`}
                           onClick={(e) => toggleSelection(e, node.id)}
                         >
                           <Checkbox 
                             checked={selectedNodeIds.has(node.id)} 
                             onCheckedChange={() => {}} // React handles this in onClick of wrapper
-                            className="pointer-events-none"
+                            className="pointer-events-none data-[state=unchecked]:bg-background data-[state=unchecked]:border-primary/40 data-[state=unchecked]:shadow-sm"
                           />
                         </div>
                         <div className="flex-1 min-w-0">

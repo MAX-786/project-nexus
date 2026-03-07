@@ -54,8 +54,8 @@ export default async function DashboardLayout({
       <div className="flex h-screen flex-col bg-background">
         {/* Dashboard Header */}
         <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-          <div className="flex h-14 items-center justify-between px-4 sm:px-6">
-            <div className="flex items-center gap-4">
+          <div className="flex h-14 items-center justify-between px-4 sm:px-6 gap-4">
+            <div className="flex items-center gap-4 shrink-0">
               {/* Mobile Menu Toggle */}
               <div className="md:hidden">
                 <Sheet>
@@ -118,14 +118,16 @@ export default async function DashboardLayout({
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1 rounded-xl bg-muted/50 p-1 absolute left-1/2 -translate-x-1/2">
-              <NavTab href="/dashboard/feed" icon={<Rss className="h-4 w-4" />} label="Feed" />
-              <NavTab href="/dashboard/graph" icon={<Network className="h-4 w-4" />} label="Graph" />
-              <NavTab href="/dashboard/review" icon={<GraduationCap className="h-4 w-4" />} label="Review" />
-            </nav>
+            <div className="hidden md:flex flex-1 justify-center min-w-0">
+              <nav className="flex items-center gap-1 rounded-xl bg-muted/50 p-1">
+                <NavTab href="/dashboard/feed" icon={<Rss className="h-4 w-4" />} label="Feed" />
+                <NavTab href="/dashboard/graph" icon={<Network className="h-4 w-4" />} label="Graph" />
+                <NavTab href="/dashboard/review" icon={<GraduationCap className="h-4 w-4" />} label="Review" />
+              </nav>
+            </div>
 
             {/* Desktop Actions */}
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
               {/* Global Search — Cmd+K command palette */}
               <CommandSearch />
 

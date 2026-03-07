@@ -142,7 +142,7 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
               <p className="text-xs text-muted-foreground text-center mb-3">
                 How well did you recall this?
               </p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {ratingButtons.map((btn) => (
                   <Button
                     key={btn.rating}

@@ -168,11 +168,6 @@ function IndexPopup() {
               </svg>
             </div>
             <span className="text-sm font-bold tracking-tight">Nexus</span>
-            {captureCount > 0 && (
-              <span className="text-[10px] bg-[#7c5cfc]/20 text-[#7c5cfc] px-1.5 py-0.5 rounded-full font-medium">
-                {captureCount} today
-              </span>
-            )}
           </div>
           <button
             onClick={() => chrome.runtime.openOptionsPage()}
@@ -251,10 +246,10 @@ function IndexPopup() {
           </button>
 
           {/* Capture History */}
-          {history.length > 0 && (
-            <div className="mt-4 border-t border-nexus-border pt-3">
-              <div className="flex justify-between items-center mb-2 px-1">
-                <span className="text-xs font-semibold text-nexus-muted">Recent Captures</span>
+          <div className="mt-4 border-t border-nexus-border pt-3">
+            <div className="flex justify-between items-center mb-2 px-1">
+              <span className="text-xs font-semibold text-nexus-muted">Recent Captures</span>
+              {history.length > 0 && (
                 <button
                   onClick={async () => {
                     await storage.remove("capture-history")
@@ -264,7 +259,9 @@ function IndexPopup() {
                 >
                   Clear
                 </button>
-              </div>
+              )}
+            </div>
+            {history.length > 0 ? (
               <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {history.map((item, idx) => (
                   <li key={item.id || idx} className="bg-nexus-border/20 p-2.5 rounded-lg border border-nexus-border/50 hover:bg-nexus-border/40 transition-colors">
@@ -275,8 +272,16 @@ function IndexPopup() {
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-6 px-4 bg-nexus-border/10 rounded-lg border border-dashed border-nexus-border/50">
+                <svg className="w-6 h-6 mx-auto text-nexus-muted/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                </svg>
+                <p className="text-[11px] text-nexus-muted mb-1">No captures yet</p>
+                <p className="text-[9px] text-nexus-muted/70">Click Capture Page to save this site.</p>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Toast Container */}

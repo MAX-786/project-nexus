@@ -106,6 +106,33 @@ function Options() {
             />
           </section>
 
+          {/* Keyboard Shortcuts */}
+          <section className="mt-8 pt-6 border-t border-nexus-border">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-nexus-muted mb-3 flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2.5" />
+                <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8" />
+              </svg>
+              Keyboard Shortcuts
+            </h2>
+            <div className="flex items-center justify-between p-3 bg-nexus-card border border-nexus-border rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-nexus-text">Capture Page</p>
+                <p className="text-[11px] text-nexus-muted mt-0.5">Instantly capture without opening the popup</p>
+              </div>
+              <div className="flex items-center gap-1.5 font-mono text-xs">
+                <kbd className="px-2 py-1 rounded-md bg-nexus-bg border border-nexus-border/80 text-nexus-muted shadow-sm">Alt</kbd>
+                <span className="text-nexus-muted/50">+</span>
+                <kbd className="px-2 py-1 rounded-md bg-nexus-bg border border-nexus-border/80 text-nexus-muted shadow-sm">Shift</kbd>
+                <span className="text-nexus-muted/50">+</span>
+                <kbd className="px-2 py-1 rounded-md bg-nexus-bg border border-nexus-border/80 text-nexus-muted shadow-sm">C</kbd>
+              </div>
+            </div>
+            <p className="text-[10px] text-nexus-muted mt-2 pl-1">
+              You can customize this shortcut in Chrome at: <span className="font-mono text-nexus-text/70">chrome://extensions/shortcuts</span>
+            </p>
+          </section>
+
           {/* JWT Section */}
           <section className="mt-8 pt-6 border-t border-nexus-border">
             <div className="flex items-center gap-2 mb-1">

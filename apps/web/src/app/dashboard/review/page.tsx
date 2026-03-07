@@ -1,9 +1,10 @@
-import { createClient } from '@/utils/supabase/server'
+import { GraduationCap } from 'lucide-react'
+
+import { ReviewEmptyState } from '@/components/dashboard/empty-states'
 import ReviewCards from '@/components/dashboard/review-cards'
 import ReviewStreak from '@/components/dashboard/review-streak'
-import { ReviewEmptyState } from '@/components/dashboard/empty-states'
-import { GraduationCap } from 'lucide-react'
 import type { ReviewWithNode } from '@/lib/types'
+import { createClient } from '@/utils/supabase/server'
 
 const MS_PER_DAY = 86400000
 

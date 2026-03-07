@@ -43,6 +43,20 @@ export interface ReviewWithNode {
   node: Pick<DBNode, 'id' | 'title' | 'summary' | 'url'>
 }
 
+export interface DBCollection {
+  id: string
+  user_id: string
+  name: string
+  color: string | null
+  created_at: string
+}
+
+export interface DBNodeCollection {
+  node_id: string
+  collection_id: string
+  created_at: string
+}
+
 /** Minimal user shape hydrated from Supabase auth into Zustand */
 export interface AuthUser {
   id: string

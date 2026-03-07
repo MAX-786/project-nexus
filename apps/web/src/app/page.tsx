@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import {
   Brain,
   Sparkles,
@@ -15,8 +14,10 @@ import {
   Shield,
   Code2,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { createClient } from '@/utils/supabase/server'
 
 const CURRENT_YEAR = new Date().getFullYear()

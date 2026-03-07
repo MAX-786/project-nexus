@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { useTheme } from 'next-themes'
 import { Sun, Moon, Monitor, Copy, Check, Trash2 } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
+
+import { deleteAccount } from '@/app/dashboard/settings/actions'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,8 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { toast } from 'sonner'
-import { deleteAccount } from '@/app/dashboard/settings/actions'
 
 interface SettingsClientProps {
   email: string

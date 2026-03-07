@@ -1,6 +1,6 @@
-import { createClient } from '@/utils/supabase/server'
 import KnowledgeGraph from '@/components/dashboard/knowledge-graph'
 import type { DBNode, DBEdge, DBEntity } from '@/lib/types'
+import { createClient } from '@/utils/supabase/server'
 
 export default async function GraphPage() {
   const supabase = await createClient()

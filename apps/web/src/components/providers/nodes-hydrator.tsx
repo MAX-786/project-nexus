@@ -1,8 +1,9 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import { useNodesStore } from '@/stores/nodes-store'
+
 import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
+import { useNodesStore } from '@/stores/nodes-store'
 
 interface NodesHydratorProps {
   nodes: DBNode[]

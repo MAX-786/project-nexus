@@ -1,18 +1,32 @@
 'use client'
 
-import { useState, useTransition, useCallback, useEffect } from 'react'
+import { useState, useRef, useTransition, useCallback, useEffect } from 'react'
 
-import { Checkbox } from '@/components/ui/checkbox'
+
+import '@xyflow/react/dist/style.css'
+
+import { toast } from 'sonner'
+import { deleteNode, getNodeDetail, batchDeleteNodes } from '@/app/dashboard/feed/actions'
+import { updateNode } from '@/app/dashboard/graph/actions'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   ReactFlow,
   Background,
@@ -20,9 +34,6 @@ import {
   Node as FlowNode,
   Edge as FlowEdge,
 } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
-import { CollectionTaggerDialog } from './collection-tagger-dialog'
-import { createClient } from '@/utils/supabase/client'
 import {
   ExternalLink,
   Clock,
@@ -45,34 +56,25 @@ import {
   Copy,
   Filter,
 } from 'lucide-react'
-import { toast } from 'sonner'
-
-import { useNodesStore, useFilteredNodes } from '@/stores/nodes-store'
-import { useUIStore } from '@/stores/ui-store'
-import { deleteNode, getNodeDetail, batchDeleteNodes } from '@/app/dashboard/feed/actions'
-import { updateNode } from '@/app/dashboard/graph/actions'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import { Skeleton } from '@/components/ui/skeleton'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { DBNode, DBEntity, DBCollection } from '@/lib/types'
+import { useNodesStore, useFilteredNodes } from '@/stores/nodes-store'
+import { useUIStore } from '@/stores/ui-store'
+import { createClient } from '@/utils/supabase/client'
 
+import { CollectionTaggerDialog } from './collection-tagger-dialog'
 import { FeedEmptyState } from './empty-states'
 
 // ---- Helpers ----
@@ -276,11 +278,46 @@ export default function NodeFeed() {
   const [isSaving, setIsSaving] = useState(false)
   const updateNodeInStore = useNodesStore((s) => s.updateNode)
 
+  function cancelEditing() {
+    setIsEditing(false)
+    setEditTitle('')
+    setEditSummary('')
+  }
+
+  const startEditing = (n: DBNode) => {
+    setEditTitle(n.title)
+    setEditSummary(n.summary || '')
+    setIsEditing(true)
+  }
+
+  const handleSaveEdit = (nodeId: string) => {
+    if (!editTitle.trim()) return
+    setIsSaving(true)
+    startTransition(async () => {
+      const result = await updateNode(nodeId, {
+        title: editTitle.trim(),
+        summary: editSummary.trim() || undefined,
+      })
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        updateNodeInStore(nodeId, {
+          title: editTitle.trim(),
+          summary: editSummary.trim() || undefined,
+        })
+        toast.success("Memory updated successfully")
+        setIsEditing(false)
+      }
+      setIsSaving(false)
+    })
+  }
+
   const handleSheetChange = useCallback((open: boolean) => {
     if (!open) {
       setSelectedNodeId(null)
       cancelEditing()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setSelectedNodeId])
 
   const nodeEntities = (nodeId: string) => entities.filter((e) => e.node_id === nodeId)
@@ -352,37 +389,7 @@ export default function NodeFeed() {
     }
   }
 
-  const startEditing = (node: DBNode) => {
-    setEditTitle(node.title)
-    setEditSummary(node.summary ?? '')
-    setIsEditing(true)
-  }
 
-  const cancelEditing = () => {
-    setIsEditing(false)
-    setEditTitle('')
-    setEditSummary('')
-  }
-
-  const handleSaveEdit = async (nodeId: string) => {
-    setIsSaving(true)
-    const result = await updateNode(nodeId, {
-      title: editTitle,
-      summary: editSummary,
-    })
-    if (result.error) {
-      toast.error(result.error)
-    } else {
-      updateNodeInStore(nodeId, { title: editTitle, summary: editSummary })
-      toast.success('Node updated successfully')
-      setIsEditing(false)
-    }
-    setIsSaving(false)
-  }
-
-  if (nodes.length === 0) {
-    return <FeedEmptyState />
-  }
 
   // Apply collection filter
   let displayNodes = filteredNodes
@@ -393,6 +400,20 @@ export default function NodeFeed() {
         .map(nc => nc.node_id)
     )
     displayNodes = displayNodes.filter(n => nodeIdsInCollection.has(n.id))
+  }
+
+  // Virtualized list
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const virtualizer = useVirtualizer({
+    count: displayNodes.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 160,
+    overscan: 5,
+    gap: 16,
+  })
+
+  if (nodes.length === 0) {
+    return <FeedEmptyState />
   }
 
   const selectedCollection = collections.find(c => c.id === selectedCollectionId)
@@ -469,152 +490,170 @@ export default function NodeFeed() {
         </div>
       </div>
 
-      {/* Scrollable card list */}
-      <div className="flex-1 overflow-y-auto min-h-0 relative">
-        <div className="p-4 sm:p-6 flex flex-col gap-4 pb-24">
-          {displayNodes.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
-              <Search className="h-8 w-8 text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">
-                {searchQuery ? `No results for "${searchQuery}"` : 'No memories in this collection.'}
-              </p>
-            </div>
-          ) : (
-            displayNodes.map((node) => {
+      {/* Virtualized scrollable card list */}
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0 relative">
+        {displayNodes.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
+            <Search className="h-8 w-8 text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground">
+              {searchQuery ? `No results for "${searchQuery}"` : 'No memories in this collection.'}
+            </p>
+          </div>
+        ) : (
+          <div
+            className="p-4 sm:p-6 relative w-full pb-24"
+            style={{ height: virtualizer.getTotalSize() }}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const node = displayNodes[virtualRow.index]
               const ne = nodeEntities(node.id)
               const cc = connectionCount(node.id)
               const isDeleting = deletingId === node.id
               return (
-                <Card
+                <div
                   key={node.id}
-                  className={`group cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-[oklch(0.637_0.237_275/12%)] relative ${
-                    selectedNodeIds.has(node.id) ? 'border-primary/50 bg-primary/5' : 'hover:border-primary/30 hover:bg-card/80'
-                  }`}
-                  onClick={(e) => {
-                    // If in selection mode and clicking the card body, toggle selection instead of opening sheet
-                    if (selectedNodeIds.size > 0) {
-                      toggleSelection(e, node.id)
-                    } else {
-                      setSelectedNodeId(node.id)
-                    }
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    transform: `translateY(${virtualRow.start}px)`,
+                    paddingLeft: 'inherit',
+                    paddingRight: 'inherit',
                   }}
                 >
-                  <CardHeader className="pb-2 relative z-10">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div 
-                          className={`mt-1 h-6 w-6 shrink-0 flex items-center justify-center rounded-md transition-all ${
-                            selectedNodeIds.has(node.id) || selectedNodeIds.size > 0 
-                              ? 'opacity-100' 
-                              : 'opacity-0 group-hover:opacity-100'
-                          } hover:bg-primary/10`}
-                          onClick={(e) => toggleSelection(e, node.id)}
-                        >
-                          <Checkbox 
-                            checked={selectedNodeIds.has(node.id)} 
-                            onCheckedChange={() => {}} // React handles this in onClick of wrapper
-                            className="pointer-events-none data-[state=unchecked]:bg-background data-[state=unchecked]:border-primary/40 data-[state=unchecked]:shadow-sm"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                          {node.title}
-                        </CardTitle>
-                        <CardDescription className="mt-1.5 flex items-center gap-1.5 text-xs">
-                          {getFaviconUrl(node.url) && (
-                            <img
-                              src={getFaviconUrl(node.url)}
-                              alt=""
-                              width={14}
-                              height={14}
-                              className="shrink-0 rounded-sm"
-                              loading="lazy"
+                  <Card
+                    className={`group cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-[oklch(0.637_0.237_275/12%)] relative ${
+                      selectedNodeIds.has(node.id) ? 'border-primary/50 bg-primary/5' : 'hover:border-primary/30 hover:bg-card/80'
+                    }`}
+                    onClick={(e) => {
+                      // If in selection mode and clicking the card body, toggle selection instead of opening sheet
+                      if (selectedNodeIds.size > 0) {
+                        toggleSelection(e, node.id)
+                      } else {
+                        setSelectedNodeId(node.id)
+                      }
+                    }}
+                  >
+                    <CardHeader className="pb-2 relative z-10">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div 
+                            className={`mt-1 h-6 w-6 shrink-0 flex items-center justify-center rounded-md transition-all ${
+                              selectedNodeIds.has(node.id) || selectedNodeIds.size > 0 
+                                ? 'opacity-100' 
+                                : 'opacity-0 group-hover:opacity-100'
+                            } hover:bg-primary/20 bg-background/50 backdrop-blur-sm`}
+                            onClick={(e) => toggleSelection(e, node.id)}
+                          >
+                            <Checkbox 
+                              checked={selectedNodeIds.has(node.id)} 
+                              onCheckedChange={() => {}} // React handles this in onClick of wrapper
+                              className="pointer-events-none data-[state=unchecked]:bg-muted data-[state=unchecked]:border-primary/50 hover:data-[state=unchecked]:bg-background/80"
                             />
-                          )}
-                          <span className="truncate">{getDomain(node.url)}</span>
-                        </CardDescription>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-base leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                              {node.title}
+                            </CardTitle>
+                            <CardDescription className="mt-1.5 flex items-center gap-1.5 text-xs">
+                              {getFaviconUrl(node.url) && (
+                                <img
+                                  src={getFaviconUrl(node.url)}
+                                  alt=""
+                                  width={14}
+                                  height={14}
+                                  className="shrink-0 rounded-sm"
+                                  loading="lazy"
+                                />
+                              )}
+                              <span className="truncate">{getDomain(node.url)}</span>
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground cursor-default">
+                                <Clock className="h-3 w-3" />
+                                {formatRelativeTime(node.created_at)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              {formatDate(node.created_at)}
+                            </TooltipContent>
+                          </Tooltip>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                            onClick={(e) => handleDelete(node.id, e)}
+                            disabled={isDeleting}
+                            title="Delete node"
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground cursor-default">
-                              <Clock className="h-3 w-3" />
-                              {formatRelativeTime(node.created_at)}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {formatDate(node.created_at)}
-                          </TooltipContent>
-                        </Tooltip>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                          onClick={(e) => handleDelete(node.id, e)}
-                          disabled={isDeleting}
-                          title="Delete node"
-                        >
-                          {isDeleting ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <div>
+                        <p className={`text-sm text-muted-foreground leading-relaxed ${
+                          expandedId === node.id ? '' : 'line-clamp-2'
+                        }`}>
+                          {node.summary}
+                        </p>
+                        {node.summary && node.summary.length > 120 && (
+                          <button
+                            type="button"
+                            className="mt-1 flex items-center gap-0.5 text-xs text-primary hover:text-primary/80 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setExpandedId(expandedId === node.id ? null : node.id)
+                            }}
+                          >
+                            {expandedId === node.id ? (
+                              <><ChevronUp className="h-3 w-3" /> Show less</>
+                            ) : (
+                              <><ChevronDown className="h-3 w-3" /> Read more</>
+                            )}
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                    <div>
-                      <p className={`text-sm text-muted-foreground leading-relaxed ${
-                        expandedId === node.id ? '' : 'line-clamp-2'
-                      }`}>
-                        {node.summary}
-                      </p>
-                      {node.summary && node.summary.length > 120 && (
-                        <button
-                          type="button"
-                          className="mt-1 flex items-center gap-0.5 text-xs text-primary hover:text-primary/80 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setExpandedId(expandedId === node.id ? null : node.id)
-                          }}
-                        >
-                          {expandedId === node.id ? (
-                            <><ChevronUp className="h-3 w-3" /> Show less</>
-                          ) : (
-                            <><ChevronDown className="h-3 w-3" /> Read more</>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    <div className="mt-3 flex items-center gap-2 flex-wrap">
-                      {ne.slice(0, 3).map((entity) => (
-                        <Badge
-                          key={entity.id}
-                          variant="outline"
-                          className={`text-xs px-2 py-0.5 ${getEntityColor(entity.type)}`}
-                        >
-                          <Tag className="h-2.5 w-2.5 mr-1" />
-                          {entity.name}
-                        </Badge>
-                      ))}
-                      {ne.length > 3 && (
-                        <span className="text-xs text-muted-foreground">+{ne.length - 3} more</span>
-                      )}
-                      {cc > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-                          <Network className="h-3 w-3" />
-                          {cc}
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                        {ne.slice(0, 3).map((entity) => (
+                          <Badge
+                            key={entity.id}
+                            variant="outline"
+                            className={`text-xs px-2 py-0.5 ${getEntityColor(entity.type)}`}
+                          >
+                            <Tag className="h-2.5 w-2.5 mr-1" />
+                            {entity.name}
+                          </Badge>
+                        ))}
+                        {ne.length > 3 && (
+                          <span className="text-xs text-muted-foreground">+{ne.length - 3} more</span>
+                        )}
+                        {cc > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+                            <Network className="h-3 w-3" />
+                            {cc}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               )
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
 
       {/* Floating Action Bar */}

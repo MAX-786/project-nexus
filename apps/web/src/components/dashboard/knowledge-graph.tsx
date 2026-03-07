@@ -115,6 +115,9 @@ function NexusNode({ data }: NodeProps) {
 const nodeTypes = { nexusNode: NexusNode }
 
 const LARGE_GRAPH_THRESHOLD = 500
+const DEFAULT_CLUSTER_DEPTH = 2
+const FIT_VIEW_DURATION = 800
+const FIT_VIEW_PADDING = 0.2
 
 function KnowledgeGraphInner({
   initialNodes = [],
@@ -141,7 +144,7 @@ function KnowledgeGraphInner({
   const isClusterActive = !showAll && !!selectedNodeId
   const clusterNodeIds = useMemo(() => {
     if (!isClusterActive || !selectedNodeId) return null
-    return getLocalCluster(selectedNodeId, dbEdges, 2)
+    return getLocalCluster(selectedNodeId, dbEdges, DEFAULT_CLUSTER_DEPTH)
   }, [isClusterActive, selectedNodeId, dbEdges])
 
   // Map DB Nodes to React Flow Nodes — use a grid layout instead of circular
@@ -217,7 +220,7 @@ function KnowledgeGraphInner({
   // Smooth zoom-to-fit when cluster changes
   useEffect(() => {
     const timer = setTimeout(() => {
-      fitView({ duration: 800, padding: 0.2 })
+      fitView({ duration: FIT_VIEW_DURATION, padding: FIT_VIEW_PADDING })
     }, 50)
     return () => clearTimeout(timer)
   }, [clusterNodeIds, fitView])

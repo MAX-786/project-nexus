@@ -11,6 +11,7 @@ export function getLocalCluster(
 ): Set<string> {
   const visited = new Set<string>()
   const queue: [string, number][] = [[startNodeId, 0]]
+  let head = 0
   visited.add(startNodeId)
 
   // Build adjacency list for efficient traversal
@@ -22,8 +23,8 @@ export function getLocalCluster(
     adjacency.get(edge.target_id)!.push(edge.source_id)
   }
 
-  while (queue.length > 0) {
-    const [currentId, depth] = queue.shift()!
+  while (head < queue.length) {
+    const [currentId, depth] = queue[head++]
     if (depth >= maxDepth) continue
 
     const neighbors = adjacency.get(currentId) ?? []

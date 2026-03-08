@@ -1,4 +1,4 @@
-import { Brain, Rss, Network, GraduationCap, LogOut, Settings, Menu } from 'lucide-react'
+import { Brain, Rss, Network, GraduationCap, Sparkles, LogOut, Settings, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -77,6 +77,7 @@ export default async function DashboardLayout({
                       <NavTab href="/dashboard/feed" icon={<Rss className="h-4 w-4" />} label="Feed" />
                       <NavTab href="/dashboard/graph" icon={<Network className="h-4 w-4" />} label="Graph" />
                       <NavTab href="/dashboard/review" icon={<GraduationCap className="h-4 w-4" />} label="Review" />
+                      <NavTab href="/dashboard/memory" icon={<Sparkles className="h-4 w-4" />} label="Memory" />
                     </nav>
                     
                     <Separator />
@@ -125,6 +126,7 @@ export default async function DashboardLayout({
                 <NavTab href="/dashboard/feed" icon={<Rss className="h-4 w-4" />} label="Feed" />
                 <NavTab href="/dashboard/graph" icon={<Network className="h-4 w-4" />} label="Graph" />
                 <NavTab href="/dashboard/review" icon={<GraduationCap className="h-4 w-4" />} label="Review" />
+                <NavTab href="/dashboard/memory" icon={<Sparkles className="h-4 w-4" />} label="Memory" />
               </nav>
             </div>
 

@@ -57,6 +57,16 @@ export interface DBNodeCollection {
   created_at: string
 }
 
+export interface DBConsolidation {
+  id: string
+  user_id: string
+  source_node_ids: string[]
+  summary: string
+  insight: string
+  themes: string[]
+  created_at: string
+}
+
 /** Minimal user shape hydrated from Supabase auth into Zustand */
 export interface AuthUser {
   id: string

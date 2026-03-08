@@ -2,6 +2,9 @@ node_modules
 .turbo
 .pnpm-store
 
+# Temp reference files
+temp/
+
 # Next.js
 .next
 out/

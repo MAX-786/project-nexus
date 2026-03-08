@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  Bot,
   Brain,
   ChevronRight,
   Lightbulb,
@@ -8,11 +9,13 @@ import {
   MessageSquare,
   Search,
   Send,
+  Settings2,
   Sparkles,
   Tag,
   Trash2,
   Zap,
 } from 'lucide-react'
+import Link from 'next/link'
 import { useCallback, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
@@ -23,6 +26,12 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { callMemoryAgent } from '@/lib/memory-agent'
+import {
+  useMemorySettings,
+  PROVIDER_LABELS,
+  DEFAULT_MODELS,
+} from '@/lib/memory-settings'
 import type { DBConsolidation, DBNode } from '@/lib/types'
 
 import {
@@ -103,6 +112,19 @@ ${question}
 Provide a clear, thorough answer with citations like [Node 1], [Insight 2], etc.`
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Extract JSON from an AI response that may be wrapped in markdown code fences */
+function extractJSON(text: string): string {
+  // Try to extract JSON from ```json ... ``` or ``` ... ```
+  const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/)
+  if (fenceMatch) return fenceMatch[1].trim()
+  // Otherwise try to find a JSON object directly
+  const objMatch = text.match(/\{[\s\S]*\}/)
+  if (objMatch) return objMatch[0]
+  return text.trim()
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function MemoryClient({
@@ -118,12 +140,17 @@ export default function MemoryClient({
   )
   const [themes] = useState(initialThemes)
 
+  // Memory settings (Zustand — persisted in localStorage)
+  const memorySettings = useMemorySettings()
+  const isAutoReady = memorySettings.mode === 'auto' && memorySettings.apiKey.trim().length > 0
+
   // Consolidation state
   const [isConsolidating, startConsolidation] = useTransition()
   const [consolidationPrompt, setConsolidationPrompt] = useState('')
   const [consolidationResponse, setConsolidationResponse] = useState('')
   const [showPrompt, setShowPrompt] = useState(false)
   const [pendingSourceNodeIds, setPendingSourceNodeIds] = useState<string[]>([])
+  const [isAutoConsolidating, setIsAutoConsolidating] = useState(false)
 
   // Query state
   const [queryInput, setQueryInput] = useState('')
@@ -131,12 +158,138 @@ export default function MemoryClient({
   const [queryResponse, setQueryResponse] = useState('')
   const [isQuerying, setIsQuerying] = useState(false)
   const [showQueryPrompt, setShowQueryPrompt] = useState(false)
+  const [isAutoQuerying, setIsAutoQuerying] = useState(false)
   const queryInputRef = useRef<HTMLInputElement>(null)
 
   // Delete state
   const [isPending, startTransition] = useTransition()
 
-  // ─── Consolidation Logic ─────────────────────────────────────────────────
+  // ─── Auto Mode: Consolidation ───────────────────────────────────────────
+
+  const handleAutoConsolidate = useCallback(async () => {
+    setIsAutoConsolidating(true)
+    setActiveTab('consolidate')
+
+    try {
+      const result = await getUnconsolidatedNodes()
+      if (result.error || !result.data) {
+        toast.error(result.error ?? 'Failed to fetch nodes')
+        return
+      }
+
+      if (result.data.length < 2) {
+        toast.info('Need at least 2 unconsolidated nodes to consolidate')
+        return
+      }
+
+      const batch = result.data.slice(0, 10)
+      const nodeIds = batch.map((n: NodePreview) => n.id)
+      const prompt = buildConsolidationPrompt(
+        batch.map((n: NodePreview) => ({
+          id: n.id,
+          title: n.title,
+          summary: n.summary ?? '',
+        })),
+      )
+
+      setPendingSourceNodeIds(nodeIds)
+      toast.info(`Consolidating ${batch.length} nodes with ${PROVIDER_LABELS[memorySettings.provider]}...`)
+
+      const response = await callMemoryAgent({
+        provider: memorySettings.provider,
+        apiKey: memorySettings.apiKey,
+        model: memorySettings.model || undefined,
+        prompt,
+      })
+
+      if (response.error) {
+        toast.error(response.error)
+        return
+      }
+
+      // Extract JSON from the response (handle markdown code fences)
+      const jsonText = extractJSON(response.text)
+      const parsed = JSON.parse(jsonText)
+      const { summary, insight, themes: newThemes } = parsed
+
+      if (!summary || !insight) {
+        toast.error('AI response missing required "summary" or "insight" fields')
+        setConsolidationResponse(response.text)
+        setShowPrompt(true)
+        return
+      }
+
+      const saveResult = await saveConsolidation({
+        sourceNodeIds: nodeIds,
+        summary,
+        insight,
+        themes: newThemes ?? [],
+      })
+
+      if (saveResult.error) {
+        toast.error(saveResult.error)
+        return
+      }
+
+      // Optimistic update
+      setConsolidations((prev: DBConsolidation[]) => [
+        {
+          id: `temp-${Date.now()}`,
+          user_id: '',
+          source_node_ids: nodeIds,
+          summary,
+          insight,
+          themes: newThemes ?? [],
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ])
+      setUnconsolidatedCount((c: number) => Math.max(0, c - nodeIds.length))
+      toast.success('Consolidation complete — insights discovered!')
+      setActiveTab('insights')
+    } catch (err) {
+      toast.error(
+        err instanceof SyntaxError
+          ? 'AI response was not valid JSON. Try again or switch to Manual mode.'
+          : 'Consolidation failed',
+      )
+    } finally {
+      setIsAutoConsolidating(false)
+    }
+  }, [memorySettings.provider, memorySettings.apiKey, memorySettings.model])
+
+  // ─── Auto Mode: Query ───────────────────────────────────────────────────
+
+  const handleAutoQuery = useCallback(async () => {
+    if (!queryInput.trim()) return
+    setIsAutoQuerying(true)
+    setQueryResponse('')
+
+    try {
+      const prompt = buildQueryPrompt(queryInput, nodes, consolidations)
+
+      const response = await callMemoryAgent({
+        provider: memorySettings.provider,
+        apiKey: memorySettings.apiKey,
+        model: memorySettings.model || undefined,
+        prompt,
+      })
+
+      if (response.error) {
+        toast.error(response.error)
+        return
+      }
+
+      setQueryResponse(response.text)
+      setIsQuerying(false)
+    } catch {
+      toast.error('Query failed')
+    } finally {
+      setIsAutoQuerying(false)
+    }
+  }, [queryInput, nodes, consolidations, memorySettings.provider, memorySettings.apiKey, memorySettings.model])
+
+  // ─── Manual Mode: Consolidation ─────────────────────────────────────────
 
   const handlePrepareConsolidation = useCallback(async () => {
     const result = await getUnconsolidatedNodes()
@@ -175,7 +328,8 @@ export default function MemoryClient({
 
     startConsolidation(async () => {
       try {
-        const parsed = JSON.parse(consolidationResponse)
+        const jsonText = extractJSON(consolidationResponse)
+        const parsed = JSON.parse(jsonText)
         const { summary, insight, themes: newThemes } = parsed
 
         if (!summary || !insight) {
@@ -199,7 +353,7 @@ export default function MemoryClient({
         setConsolidationResponse('')
         setShowPrompt(false)
 
-        // Optimistic update — use a temporary ID that distinguishes from DB IDs
+        // Optimistic update
         setConsolidations((prev: DBConsolidation[]) => [
           {
             id: `temp-${Date.now()}`,
@@ -221,7 +375,7 @@ export default function MemoryClient({
     })
   }, [consolidationResponse, pendingSourceNodeIds])
 
-  // ─── Query Logic ─────────────────────────────────────────────────────────
+  // ─── Manual Mode: Query ─────────────────────────────────────────────────
 
   const handlePrepareQuery = useCallback(() => {
     if (!queryInput.trim()) return
@@ -326,8 +480,8 @@ export default function MemoryClient({
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="px-6 pt-4">
+      {/* Tab Navigation + Mode Badge */}
+      <div className="px-6 pt-4 flex items-center justify-between">
         <nav className="flex items-center gap-1 rounded-xl bg-muted/50 p-1 w-fit">
           {tabs.map((tab) => (
             <button
@@ -345,6 +499,30 @@ export default function MemoryClient({
             </button>
           ))}
         </nav>
+
+        {/* Mode Badge */}
+        <Link href="/dashboard/settings" className="group flex items-center gap-2">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              isAutoReady
+                ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+                : 'bg-muted text-muted-foreground border border-border/50',
+            )}
+          >
+            {isAutoReady ? (
+              <>
+                <Bot className="h-3 w-3" />
+                Auto · {PROVIDER_LABELS[memorySettings.provider]}
+              </>
+            ) : (
+              <>
+                <Settings2 className="h-3 w-3" />
+                Manual Mode
+              </>
+            )}
+          </span>
+        </Link>
       </div>
 
       {/* Tab Content */}
@@ -355,9 +533,10 @@ export default function MemoryClient({
             nodes={nodes}
             onDelete={handleDeleteConsolidation}
             onClearAll={handleClearAll}
-            onConsolidate={handlePrepareConsolidation}
+            onConsolidate={isAutoReady ? handleAutoConsolidate : handlePrepareConsolidation}
             isPending={isPending}
             unconsolidatedCount={unconsolidatedCount}
+            isAutoConsolidating={isAutoConsolidating}
           />
         )}
 
@@ -371,8 +550,10 @@ export default function MemoryClient({
             isQuerying={isQuerying}
             setIsQuerying={setIsQuerying}
             showQueryPrompt={showQueryPrompt}
-            onPrepareQuery={handlePrepareQuery}
+            onPrepareQuery={isAutoReady ? handleAutoQuery : handlePrepareQuery}
             queryInputRef={queryInputRef}
+            isAutoReady={isAutoReady}
+            isAutoQuerying={isAutoQuerying}
           />
         )}
 
@@ -383,9 +564,11 @@ export default function MemoryClient({
             setConsolidationResponse={setConsolidationResponse}
             showPrompt={showPrompt}
             isConsolidating={isConsolidating}
-            onPrepare={handlePrepareConsolidation}
+            onPrepare={isAutoReady ? handleAutoConsolidate : handlePrepareConsolidation}
             onSave={handleSaveConsolidation}
             unconsolidatedCount={unconsolidatedCount}
+            isAutoReady={isAutoReady}
+            isAutoConsolidating={isAutoConsolidating}
           />
         )}
       </div>
@@ -431,6 +614,7 @@ function InsightsTab({
   onConsolidate,
   isPending,
   unconsolidatedCount,
+  isAutoConsolidating,
 }: {
   consolidations: DBConsolidation[]
   nodes: NodePreview[]
@@ -439,6 +623,7 @@ function InsightsTab({
   onConsolidate: () => void
   isPending: boolean
   unconsolidatedCount: number
+  isAutoConsolidating: boolean
 }) {
   if (consolidations.length === 0) {
     return (
@@ -447,10 +632,17 @@ function InsightsTab({
         {nodes.length >= 2 && (
           <Button
             onClick={onConsolidate}
+            disabled={isAutoConsolidating}
             className="mt-6 gap-2 bg-gradient-to-r from-[oklch(0.637_0.237_275)] to-[oklch(0.7_0.2_310)] text-white shadow-lg shadow-[oklch(0.637_0.237_275/20%)] hover:shadow-[oklch(0.637_0.237_275/40%)] transition-shadow border-0"
           >
-            <Zap className="h-4 w-4" />
-            Consolidate {unconsolidatedCount} nodes
+            {isAutoConsolidating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4" />
+            )}
+            {isAutoConsolidating
+              ? 'Analyzing...'
+              : `Consolidate ${unconsolidatedCount} nodes`}
           </Button>
         )}
       </div>
@@ -468,11 +660,18 @@ function InsightsTab({
           {unconsolidatedCount >= 2 && (
             <Button
               onClick={onConsolidate}
+              disabled={isAutoConsolidating}
               size="sm"
               className="gap-2 bg-gradient-to-r from-[oklch(0.637_0.237_275)] to-[oklch(0.7_0.2_310)] text-white border-0"
             >
-              <Zap className="h-3.5 w-3.5" />
-              Consolidate {unconsolidatedCount} new nodes
+              {isAutoConsolidating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Zap className="h-3.5 w-3.5" />
+              )}
+              {isAutoConsolidating
+                ? 'Analyzing...'
+                : `Consolidate ${unconsolidatedCount} new nodes`}
             </Button>
           )}
         </div>
@@ -617,6 +816,8 @@ function QueryTab({
   showQueryPrompt,
   onPrepareQuery,
   queryInputRef,
+  isAutoReady,
+  isAutoQuerying,
 }: {
   queryInput: string
   setQueryInput: (v: string) => void
@@ -628,6 +829,8 @@ function QueryTab({
   showQueryPrompt: boolean
   onPrepareQuery: () => void
   queryInputRef: React.RefObject<HTMLInputElement | null>
+  isAutoReady: boolean
+  isAutoQuerying: boolean
 }) {
   const sampleQuestions = [
     'What are the main themes across my captures?',
@@ -649,20 +852,25 @@ function QueryTab({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQueryInput(e.target.value)}
             onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && onPrepareQuery()}
             className="pl-9"
+            disabled={isAutoQuerying}
           />
         </div>
         <Button
           onClick={onPrepareQuery}
-          disabled={!queryInput.trim()}
+          disabled={!queryInput.trim() || isAutoQuerying}
           className="gap-2 bg-gradient-to-r from-[oklch(0.637_0.237_275)] to-[oklch(0.7_0.2_310)] text-white border-0"
         >
-          <Send className="h-4 w-4" />
-          Ask
+          {isAutoQuerying ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+          {isAutoQuerying ? 'Thinking...' : 'Ask'}
         </Button>
       </div>
 
       {/* Sample Questions */}
-      {!showQueryPrompt && (
+      {!showQueryPrompt && !queryResponse && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground font-medium">
             Try asking:
@@ -684,8 +892,40 @@ function QueryTab({
         </div>
       )}
 
-      {/* Query Prompt & Response (BYOK flow) */}
-      {showQueryPrompt && (
+      {/* Auto Mode: Loading indicator */}
+      {isAutoQuerying && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+              <div>
+                <p className="text-sm font-medium text-primary">Querying your knowledge base...</p>
+                <p className="text-xs text-muted-foreground">AI is analyzing your nodes and insights</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Auto Mode: Direct response display */}
+      {isAutoReady && !isAutoQuerying && queryResponse && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">
+                Answer
+              </span>
+            </div>
+            <div className="text-sm leading-relaxed whitespace-pre-wrap">
+              {queryResponse}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Manual Mode: Prompt & Response (BYOK flow) */}
+      {!isAutoReady && showQueryPrompt && (
         <div className="space-y-4">
           <Card className="border-border/50">
             <CardHeader className="pb-2">
@@ -775,6 +1015,8 @@ function ConsolidateTab({
   onPrepare,
   onSave,
   unconsolidatedCount,
+  isAutoReady,
+  isAutoConsolidating,
 }: {
   consolidationPrompt: string
   consolidationResponse: string
@@ -784,6 +1026,8 @@ function ConsolidateTab({
   onPrepare: () => void
   onSave: () => void
   unconsolidatedCount: number
+  isAutoReady: boolean
+  isAutoConsolidating: boolean
 }) {
   return (
     <div className="max-w-3xl space-y-6">
@@ -802,8 +1046,9 @@ function ConsolidateTab({
                 Like how the brain consolidates memories during sleep, this
                 feature reviews your unconsolidated captures and discovers
                 cross-cutting themes, patterns, and non-obvious connections.
-                Your API key stays in your browser — we generate a prompt that
-                you send to your own AI.
+                {isAutoReady
+                  ? ' Your AI provider is called directly from your browser — one click to discover insights.'
+                  : ' Your API key stays in your browser — we generate a prompt that you send to your own AI.'}
               </p>
             </div>
           </div>
@@ -812,8 +1057,23 @@ function ConsolidateTab({
 
       <Separator />
 
+      {/* Auto Mode: Loading state */}
+      {isAutoConsolidating && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+              <div>
+                <p className="text-sm font-medium text-primary">Consolidating memories...</p>
+                <p className="text-xs text-muted-foreground">AI is analyzing your nodes for cross-cutting patterns</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Trigger Button */}
-      {!showPrompt && (
+      {!showPrompt && !isAutoConsolidating && (
         <div className="flex flex-col items-center gap-4 py-8">
           <p className="text-sm text-muted-foreground">
             {unconsolidatedCount >= 2
@@ -827,13 +1087,24 @@ function ConsolidateTab({
             className="gap-2 bg-gradient-to-r from-[oklch(0.637_0.237_275)] to-[oklch(0.7_0.2_310)] text-white shadow-lg shadow-[oklch(0.637_0.237_275/20%)] hover:shadow-[oklch(0.637_0.237_275/40%)] transition-shadow border-0"
           >
             <Zap className="h-5 w-5" />
-            Generate Consolidation Prompt
+            {isAutoReady
+              ? 'Consolidate with AI'
+              : 'Generate Consolidation Prompt'}
           </Button>
+          {!isAutoReady && (
+            <p className="text-xs text-muted-foreground text-center max-w-sm">
+              Switch to Auto mode in{' '}
+              <Link href="/dashboard/settings" className="text-primary hover:underline">
+                Settings
+              </Link>{' '}
+              for one-click AI-powered consolidation.
+            </p>
+          )}
         </div>
       )}
 
-      {/* BYOK Prompt Flow */}
-      {showPrompt && (
+      {/* Manual BYOK Prompt Flow (only shown when not in auto mode) */}
+      {!isAutoReady && showPrompt && (
         <div className="space-y-4">
           <Card className="border-border/50">
             <CardHeader className="pb-2">

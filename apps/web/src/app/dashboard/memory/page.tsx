@@ -23,7 +23,7 @@ export default async function MemoryPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('nodes')
-      .select('id, user_id, url, title, summary, created_at')
+      .select('id, title, summary, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
   ])

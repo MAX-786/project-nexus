@@ -123,6 +123,7 @@ export default function MemoryClient({
   const [consolidationPrompt, setConsolidationPrompt] = useState('')
   const [consolidationResponse, setConsolidationResponse] = useState('')
   const [showPrompt, setShowPrompt] = useState(false)
+  const [pendingSourceNodeIds, setPendingSourceNodeIds] = useState<string[]>([])
 
   // Query state
   const [queryInput, setQueryInput] = useState('')
@@ -149,13 +150,17 @@ export default function MemoryClient({
       return
     }
 
+    const batch = result.data.slice(0, 10)
+    const nodeIds = batch.map((n: NodePreview) => n.id)
+
     const prompt = buildConsolidationPrompt(
-      result.data.slice(0, 10).map((n: NodePreview) => ({
+      batch.map((n: NodePreview) => ({
         id: n.id,
         title: n.title,
         summary: n.summary ?? '',
       })),
     )
+    setPendingSourceNodeIds(nodeIds)
     setConsolidationPrompt(prompt)
     setConsolidationResponse('')
     setShowPrompt(true)
@@ -178,16 +183,8 @@ export default function MemoryClient({
           return
         }
 
-        // Get the source node IDs from the prompt
-        const idMatches = consolidationPrompt.match(
-          /id: ([0-9a-f-]+)/g,
-        )
-        const sourceNodeIds = idMatches
-          ? idMatches.map((m: string) => m.replace('id: ', ''))
-          : []
-
         const result = await saveConsolidation({
-          sourceNodeIds,
+          sourceNodeIds: pendingSourceNodeIds,
           summary,
           insight,
           themes: newThemes ?? [],
@@ -202,12 +199,12 @@ export default function MemoryClient({
         setConsolidationResponse('')
         setShowPrompt(false)
 
-        // Optimistic update
+        // Optimistic update — use a temporary ID that distinguishes from DB IDs
         setConsolidations((prev: DBConsolidation[]) => [
           {
-            id: crypto.randomUUID(),
+            id: `temp-${Date.now()}`,
             user_id: '',
-            source_node_ids: sourceNodeIds,
+            source_node_ids: pendingSourceNodeIds,
             summary,
             insight,
             themes: newThemes ?? [],
@@ -215,13 +212,14 @@ export default function MemoryClient({
           },
           ...prev,
         ])
-        setUnconsolidatedCount((c: number) => Math.max(0, c - sourceNodeIds.length))
+        setUnconsolidatedCount((c: number) => Math.max(0, c - pendingSourceNodeIds.length))
+        setPendingSourceNodeIds([])
         setActiveTab('insights')
       } catch {
         toast.error('Invalid JSON. Paste the raw JSON response from your AI.')
       }
     })
-  }, [consolidationResponse, consolidationPrompt])
+  }, [consolidationResponse, pendingSourceNodeIds])
 
   // ─── Query Logic ─────────────────────────────────────────────────────────
 

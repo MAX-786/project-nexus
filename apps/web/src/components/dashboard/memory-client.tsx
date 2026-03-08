@@ -207,14 +207,16 @@ export default function MemoryClient({
         return
       }
 
+      const responseText = response.text || ''
+
       // Extract JSON from the response (handle markdown code fences)
-      const jsonText = extractJSON(response.text)
+      const jsonText = extractJSON(responseText)
       const parsed = JSON.parse(jsonText)
       const { summary, insight, themes: newThemes } = parsed
 
       if (!summary || !insight) {
         toast.error('AI response missing required "summary" or "insight" fields')
-        setConsolidationResponse(response.text)
+        setConsolidationResponse(responseText)
         setShowPrompt(true)
         return
       }
@@ -280,7 +282,7 @@ export default function MemoryClient({
         return
       }
 
-      setQueryResponse(response.text)
+      setQueryResponse(response.text || '')
       setIsQuerying(false)
     } catch {
       toast.error('Query failed')

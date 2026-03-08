@@ -117,6 +117,49 @@ BEGIN
 END;
 $$;
 
+-- 7. Collections table
+CREATE TABLE public.collections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  color TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.collections ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own collections" ON public.collections FOR ALL USING (auth.uid() = user_id);
+
+CREATE TABLE public.node_collections (
+  node_id UUID NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
+  collection_id UUID NOT NULL REFERENCES public.collections(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (node_id, collection_id)
+);
+
+ALTER TABLE public.node_collections ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own node_collections" ON public.node_collections FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.nodes WHERE id = node_id AND user_id = auth.uid()));
+
+-- 8. Consolidations table (Memory Consolidation)
+-- Stores cross-cutting insights discovered across captured nodes.
+CREATE TABLE public.consolidations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  source_node_ids UUID[] NOT NULL,
+  summary TEXT NOT NULL,
+  insight TEXT NOT NULL,
+  themes TEXT[] NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.consolidations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own consolidations" ON public.consolidations FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own consolidations" ON public.consolidations FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own consolidations" ON public.consolidations FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX consolidations_user_id_idx ON public.consolidations (user_id);
+CREATE INDEX consolidations_created_at_idx ON public.consolidations (created_at DESC);
+
 -- ============================================================================
 -- MIGRATION: Run these statements on an EXISTING database to add new columns.
 -- Skip if creating tables fresh (the above CREATE TABLE statements already include them).

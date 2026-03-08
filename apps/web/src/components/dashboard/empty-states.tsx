@@ -201,3 +201,65 @@ export function ReviewEmptyState({ hasAnyReviews }: ReviewEmptyStateProps) {
     </div>
   )
 }
+
+// ─── Memory Empty State ──────────────────────────────────────────────────────
+
+interface MemoryEmptyStateProps {
+  hasNodes: boolean
+}
+
+export function MemoryEmptyState({ hasNodes }: MemoryEmptyStateProps) {
+  if (hasNodes) {
+    // User has nodes but hasn't consolidated yet
+    return (
+      <div className="text-center animate-nexus-fade-in">
+        <div className="relative mb-6 mx-auto w-fit">
+          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[oklch(0.637_0.237_275/30%)] to-[oklch(0.7_0.2_310/30%)] blur-xl scale-150" />
+          <div className="relative h-20 w-20 rounded-3xl bg-gradient-to-br from-[oklch(0.637_0.237_275)] to-[oklch(0.7_0.2_310)] flex items-center justify-center shadow-lg shadow-[oklch(0.637_0.237_275/25%)] animate-nexus-glow">
+            <Sparkles className="h-9 w-9 text-white" />
+          </div>
+        </div>
+
+        <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+          Ready to discover insights
+        </h3>
+        <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+          You have captured nodes waiting to be consolidated. Trigger a
+          consolidation to find cross-cutting themes, patterns, and connections
+          across your knowledge.
+        </p>
+      </div>
+    )
+  }
+
+  // No nodes at all
+  return (
+    <div className="text-center animate-nexus-fade-in">
+      <div className="relative mb-6 mx-auto w-fit">
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[oklch(0.637_0.237_275/30%)] to-[oklch(0.7_0.2_310/30%)] blur-xl scale-150" />
+        <div className="relative h-20 w-20 rounded-3xl bg-gradient-to-br from-[oklch(0.637_0.237_275)] to-[oklch(0.7_0.2_310)] flex items-center justify-center shadow-lg shadow-[oklch(0.637_0.237_275/25%)] animate-nexus-glow">
+          <Sparkles className="h-9 w-9 text-white" />
+        </div>
+      </div>
+
+      <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+        Your memory is empty
+      </h3>
+      <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6 leading-relaxed">
+        Capture web pages with the browser extension first. The Memory agent
+        will then find patterns and insights across your knowledge base.
+      </p>
+
+      <Button
+        asChild
+        variant="outline"
+        className="gap-2 border-primary/30 text-primary hover:bg-primary/10"
+      >
+        <Link href="/dashboard/feed">
+          <Rss className="h-4 w-4" />
+          Start capturing
+        </Link>
+      </Button>
+    </div>
+  )
+}

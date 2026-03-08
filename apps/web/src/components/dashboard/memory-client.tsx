@@ -193,7 +193,7 @@ export default function MemoryClient({
       )
 
       setPendingSourceNodeIds(nodeIds)
-      toast.info(`Analyzing ${batch.length} nodes with ${PROVIDER_LABELS[memorySettings.provider]}...`)
+      toast.info(`Consolidating ${batch.length} nodes with ${PROVIDER_LABELS[memorySettings.provider]}...`)
 
       const response = await callMemoryAgent({
         provider: memorySettings.provider,
@@ -250,7 +250,7 @@ export default function MemoryClient({
     } catch (err) {
       toast.error(
         err instanceof SyntaxError
-          ? 'Failed to parse AI response as JSON'
+          ? 'AI response was not valid JSON. Try again or switch to Manual mode.'
           : 'Consolidation failed',
       )
     } finally {

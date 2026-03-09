@@ -10,6 +10,9 @@ Project Nexus is an open-source, **Privacy-First (BYOK)** knowledge management s
 *   **🧠 AI-Powered Insights**: Automatic summarization and entity extraction (people, tools, concepts) using your preferred LLM.
 *   **🕸️ Knowledge Graph**: A dynamic, 2D visual canvas (React Flow) that automatically links related nodes using vector embeddings.
 *   **📅 Spaced Repetition**: A gamified review system (SuperMemo-2) to ensure long-term retention of your captured knowledge.
+*   **🤖 Always-On Memory Agent**: Automatic background consolidation of your captured knowledge into overarching themes, queryable via AI.
+*   **🗂️ Custom Collections & Bulk Ops**: Organize your captured nodes into specific collections to easily manage and curate your knowledge graph.
+*   **🚀 Highly Scalable Feed**: Smooth, virtualized scrolling feed capable of handling tens of thousands of captured nodes without performance degradation.
 *   **🔒 Privacy First (BYOK)**: Capture and process data using your own API keys (OpenAI, Anthropic, Gemini) stored locally in your browser.
 
 ---

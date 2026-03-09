@@ -44,6 +44,9 @@ To ensure the AI coding agent builds this reliably and fast, we are strictly usi
 | `entities` (Tags) | AI-extracted concepts/people | `id`, `user_id`, `name`, `type` (person, concept, tool) |
 | `edges` (Relations) | Links between nodes/entities | `id`, `source_id`, `target_id`, `relationship_type`, `ai_confidence_score` |
 | `reviews` | Spaced repetition tracking | `id`, `node_id`, `user_id`, `next_review_date`, `interval`, `ease_factor` |
+| `collections` | Custom user-defined groups | `id`, `user_id`, `name`, `description` |
+| `collection_nodes` | Mapping of nodes to collections | `collection_id`, `node_id` |
+| `consolidations` | AI-generated overarching themes | `id`, `user_id`, `theme`, `summary`, `source_node_ids` |
 
 ---
 
@@ -68,6 +71,8 @@ To ensure the AI coding agent builds this reliably and fast, we are strictly usi
 * **Story 2.4 (Search):** As a user, I can search across my captured nodes by title, summary, or entity name to quickly find relevant knowledge.
 * **Story 2.5 (Delete):** As a user, I can delete a captured node, which also removes its entities, edges, and spaced repetition review entry.
 * **Story 2.6 (Auth Callback):** As a system, when a user confirms their email after signup, I exchange the confirmation code for a session and redirect to the dashboard. *(Optional for MVP — email confirmation can be disabled in Supabase dashboard.)*
+* **Story 2.7 (Collections & Bulk Ops):** As a user, I can create custom collections and perform bulk operations (like adding multiple nodes to a collection or bulk deleting nodes) from the feed.
+* **Story 2.8 (Virtualized Feed):** As a system, I must render the feed list using virtualization to ensure smooth scrolling and performance even when the user has thousands of captured nodes.
 
 ### Epic 3: Gamified Spaced Repetition (The "Review" Tab)
 
@@ -76,6 +81,14 @@ To ensure the AI coding agent builds this reliably and fast, we are strictly usi
 * **Story 3.1 (Daily Queue):** As a user, I can navigate to the "Review" tab and see a queue of nodes due for review today.
 * **Story 3.2 (Flashcard UI):** As a user, I am presented with a node's Title and a masked summary. I click "Reveal" to read the summary.
 * **Story 3.3 (SuperMemo-2 Logic):** As a user, I rate my memory of the node (Forgot, Hard, Good, Easy). The system updates the `reviews` table calculating the `next_review_date` based on standard SM-2 algorithms.
+
+### Epic 4: The Memory Agent & Consolidation
+
+**Context:** "Always-On" intelligence that connects disparate dots.
+
+* **Story 4.1 (Memory Settings):** As a user, I can configure a dedicated AI provider and API key specifically for the Memory Agent (falling back to my default key if needed), and choose between "Auto" or "Manual" operation mode.
+* **Story 4.2 (Knowledge Consolidation):** As a system, when run, I periodically retrieve recent or related un-consolidated nodes and prompt the AI to find overarching themes and cross-cutting insights, saving these as `consolidations`.
+* **Story 4.3 (Memory Chat):** As a user, I can switch to the "Memory" tab to see my latest consolidations and interact with a conversational UI to ask open-ended questions about my entire captured knowledge base.
 
 ---
 

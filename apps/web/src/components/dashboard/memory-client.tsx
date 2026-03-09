@@ -16,7 +16,7 @@ import {
   Zap,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useCallback, useMemo, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -716,10 +716,17 @@ function InsightCard({
   onDelete: () => void
   isPending: boolean
 }) {
-  const date = new Date(consolidation.created_at).toLocaleDateString(
-    undefined,
-    { month: 'short', day: 'numeric', year: 'numeric' },
-  )
+  const [date, setDate] = useState('')
+
+  useEffect(() => {
+    setDate(
+      new Date(consolidation.created_at).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    )
+  }, [consolidation.created_at])
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-primary/20 hover:shadow-md hover:shadow-primary/5">
@@ -731,7 +738,7 @@ function InsightCard({
             </div>
             <div>
               <CardTitle className="text-sm font-semibold">Insight</CardTitle>
-              <p className="text-xs text-muted-foreground">{date}</p>
+              <p className="text-xs text-muted-foreground min-h-[16px]">{date}</p>
             </div>
           </div>
           <Button

@@ -41,7 +41,7 @@ async function callOpenAI(
       model,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
-      max_tokens: 2048,
+      max_tokens: 4096,
     }),
   })
 
@@ -75,7 +75,7 @@ async function callGemini(
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
       },
     }),
   })

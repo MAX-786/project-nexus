@@ -30,7 +30,7 @@ interface MemorySettingsStore extends MemorySettings {
 
 export const DEFAULT_MODELS: Record<MemoryProvider, string> = {
   openai: 'gpt-4o-mini',
-  gemini: 'gemini-2.0-flash',
+  gemini: 'gemini-2.5-flash',
 }
 
 export const PROVIDER_LABELS: Record<MemoryProvider, string> = {
@@ -40,7 +40,7 @@ export const PROVIDER_LABELS: Record<MemoryProvider, string> = {
 
 export const MODEL_OPTIONS: Record<MemoryProvider, string[]> = {
   openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1-nano'],
-  gemini: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-flash-preview-05-20'],
+  gemini: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash'],
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────

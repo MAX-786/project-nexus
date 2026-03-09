@@ -1,6 +1,6 @@
 'use client'
 
-import { Sun, Moon, Monitor, Copy, Check, Trash2, Brain, Eye, EyeOff, Sparkles } from 'lucide-react'
+import { Sun, Moon, Monitor, Trash2, Brain, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
@@ -29,33 +29,16 @@ import {
 
 interface SettingsClientProps {
   email: string
-  accessToken: string | null
   initials: string
 }
 
-export default function SettingsClient({ email, accessToken, initials }: SettingsClientProps) {
+export default function SettingsClient({ email, initials }: SettingsClientProps) {
   const { theme, setTheme } = useTheme()
-  const [copied, setCopied] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [showApiKey, setShowApiKey] = useState(false)
 
   const memorySettings = useMemorySettings()
-
-  const handleCopyToken = async () => {
-    if (!accessToken) {
-      toast.error('No token available')
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(accessToken)
-      setCopied(true)
-      toast.success('Token copied to clipboard')
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast.error('Failed to copy token')
-    }
-  }
 
   const handleDeleteAccount = () => {
     startTransition(async () => {
@@ -67,10 +50,6 @@ export default function SettingsClient({ email, accessToken, initials }: Setting
       }
     })
   }
-
-  const maskedToken = accessToken
-    ? `••••••••••••••••••••••• ${accessToken.slice(-6)}`
-    : 'No active session'
 
   const themeOptions = [
     { value: 'light', label: 'Light', icon: Sun },
@@ -266,26 +245,19 @@ export default function SettingsClient({ email, accessToken, initials }: Setting
       <section className="rounded-xl border border-border bg-card p-6">
         <h2 className="text-base font-semibold text-foreground mb-1">Extension Authentication</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Copy your JWT access token to authenticate the browser extension. This token expires with your session.
+          Connect your browser extension with one click — no manual token copying required.
+          Your session is synced securely and refreshes automatically.
         </p>
-        <div className="flex items-center gap-2 rounded-lg bg-muted/50 border border-border px-3 py-2">
-          <code className="flex-1 text-xs text-muted-foreground font-mono truncate">
-            {maskedToken}
-          </code>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0"
-            onClick={handleCopyToken}
-            disabled={!accessToken}
+        <Button asChild size="sm">
+          <a
+            href="/auth/extension"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2"
           >
-            {copied ? (
-              <Check className="h-3.5 w-3.5 text-green-500" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" />
-            )}
-          </Button>
-        </div>
+            Connect Extension →
+          </a>
+        </Button>
       </section>
 
       {/* Danger Zone Section */}

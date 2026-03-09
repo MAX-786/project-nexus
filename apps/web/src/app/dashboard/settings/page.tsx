@@ -16,10 +16,6 @@ export default async function SettingsPage() {
     return redirect('/login')
   }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
   const initials = (user.email ?? '?')
     .split('@')[0]
     .slice(0, 2)
@@ -45,7 +41,6 @@ export default async function SettingsPage() {
 
         <SettingsClient
           email={user.email ?? ''}
-          accessToken={session?.access_token ?? null}
           initials={initials}
         />
       </div>

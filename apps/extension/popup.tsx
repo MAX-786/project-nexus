@@ -11,11 +11,12 @@ function todayKey(): string {
 }
 
 function IndexPopup() {
-  const [status, setStatus] = useState<"idle" | "extracting" | "processing" | "done" | "error" | "jwt_expired">("idle")
+  const [status, setStatus] = useState<"idle" | "extracting" | "processing" | "done" | "error">("idle")
   const [progressStep, setProgressStep] = useState<string>("Processing with AI...")
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
   const [captureCount, setCaptureCount] = useState(0)
-  const [jwtStatus, setJwtStatus] = useState<"valid" | "expiring_soon" | "expired">("valid")
+  const [authUser, setAuthUser] = useState<{ email: string } | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [history, setHistory] = useState<any[]>([])
 
   // Load history
@@ -27,33 +28,16 @@ function IndexPopup() {
     loadHistory()
   }, [])
 
-  // Check JWT Status
+  // Check auth status
   useEffect(() => {
-    ;(async () => {
-      try {
-        const token = await storage.get("supabase-jwt")
-        if (!token) return
-
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        if (!payload.exp) return
-
-        const now = Math.floor(Date.now() / 1000)
-        const timeRemaining = payload.exp - now
-
-        if (timeRemaining <= 0) {
-          setJwtStatus("expired")
-          setStatus("jwt_expired")
-        } else if (timeRemaining < 15 * 60) {
-          // Less than 15 minutes remaining
-          setJwtStatus("expiring_soon")
-        } else {
-          setJwtStatus("valid")
-          setStatus((prev) => prev === "jwt_expired" ? "idle" : prev)
-        }
-      } catch (err) {
-        console.warn("Failed to decode JWT locally in popup", err)
+    chrome.runtime.sendMessage({ action: "get_auth_status" }, (response) => {
+      if (chrome.runtime.lastError) {
+        setAuthLoading(false)
+        return
       }
-    })()
+      setAuthUser(response?.authenticated ? { email: response.user.email } : null)
+      setAuthLoading(false)
+    })
   }, [])
 
   // Listen for capture progress from background script
@@ -91,6 +75,7 @@ function IndexPopup() {
   }
 
   const handleCapture = async () => {
+    if (!authUser) return
     setStatus("extracting")
     setProgressStep("Extracting...")
     setToast(null)
@@ -117,11 +102,7 @@ function IndexPopup() {
         }
 
         // Response from content script after background finishes
-        if (response.code === "jwt_expired") {
-          setStatus("jwt_expired")
-          setJwtStatus("expired")
-          setToast({ message: response.error, type: "error" })
-        } else if (response.success) {
+        if (response.success) {
           setStatus("done")
           setToast({ message: `Captured: ${tabs[0]!.title?.substring(0, 50) || "Page"}`, type: "success" })
           incrementCaptureCount()
@@ -152,7 +133,6 @@ function IndexPopup() {
     processing: progressStep,
     done: "Captured!",
     error: "Try Again",
-    jwt_expired: "Token Expired",
   }
 
   return (
@@ -183,105 +163,95 @@ function IndexPopup() {
 
         {/* Body */}
         <div className="px-4 py-4 space-y-3">
-          <p className="text-xs text-nexus-muted">
-            Capture this page to your knowledge graph.
-          </p>
 
-          {/* JWT Expiring Soon Warning */}
-          {jwtStatus === "expiring_soon" && status !== "jwt_expired" && (
-            <div className="p-3 bg-nexus-warning/10 border border-nexus-warning/20 rounded-lg animate-nexus-fade-in space-y-2">
-              <p className="text-xs text-nexus-warning font-medium">⚠ Token expiring soon</p>
-              <p className="text-[11px] text-nexus-muted">Your session token will expire within 15 minutes.</p>
+          {/* Auth Loading */}
+          {authLoading && (
+            <div className="flex items-center justify-center py-8">
+              <svg className="animate-nexus-spin h-5 w-5 text-nexus-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            </div>
+          )}
+
+          {/* Not signed in state */}
+          {!authLoading && !authUser && (
+            <div className="space-y-3 py-2">
+              <div className="p-3 bg-nexus-warning/10 border border-nexus-warning/20 rounded-lg space-y-2">
+                <p className="text-xs text-nexus-warning font-medium">Not signed in</p>
+                <p className="text-[11px] text-nexus-muted">Sign in to start capturing pages to your knowledge graph.</p>
+              </div>
               <button
                 onClick={() => {
                   const siteUrl = process.env.PLASMO_PUBLIC_SITE_URL || "http://localhost:3000"
-                  chrome.tabs.create({ url: `${siteUrl}/api/jwt` })
+                  chrome.tabs.create({ url: `${siteUrl}/auth/extension` })
                 }}
-                className="w-full text-xs font-medium py-1.5 px-3 rounded-md bg-nexus-warning/20 text-nexus-warning hover:bg-nexus-warning/30 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-gradient-to-r from-[#7c5cfc] to-[#a855f7] hover:from-[#6b4ce0] hover:to-[#9333ea] shadow-lg shadow-[#7c5cfc33] transition-all"
               >
-                Refresh Token →
+                Sign In with Nexus →
               </button>
             </div>
           )}
 
-          {/* JWT Expired */}
-          {status === "jwt_expired" && (
-            <div className="p-3 bg-nexus-error/10 border border-nexus-error/20 rounded-lg animate-nexus-fade-in space-y-2">
-              <p className="text-xs text-nexus-error font-medium">⚠ Auth token expired</p>
-              <p className="text-[11px] text-nexus-muted">Your session has expired. Get a fresh token from the web app and paste it in Settings.</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    const siteUrl = process.env.PLASMO_PUBLIC_SITE_URL || "http://localhost:3000"
-                    chrome.tabs.create({ url: `${siteUrl}/api/jwt` })
-                  }}
-                  className="flex-1 text-xs font-medium py-1.5 px-3 rounded-md bg-nexus-primary text-white hover:bg-nexus-primary-hover transition-colors"
-                >
-                  Get Token →
-                </button>
-                <button
-                  onClick={() => chrome.runtime.openOptionsPage()}
-                  className="flex-1 text-xs font-medium py-1.5 px-3 rounded-md border border-nexus-border text-nexus-muted hover:text-nexus-text hover:border-nexus-muted transition-colors"
-                >
-                  Settings
-                </button>
+          {/* Signed in state */}
+          {!authLoading && authUser && (
+            <>
+              <p className="text-xs text-nexus-muted">
+                Capture this page to your knowledge graph.
+              </p>
+
+              {/* Capture Button */}
+              <button
+                onClick={handleCapture}
+                disabled={isCapturing}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-gradient-to-r from-[#7c5cfc] to-[#a855f7] hover:from-[#6b4ce0] hover:to-[#9333ea] shadow-lg shadow-[#7c5cfc33] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+              >
+                {isCapturing && (
+                  <svg className="animate-nexus-spin h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                )}
+                {statusLabel[status]}
+              </button>
+
+              {/* Capture History */}
+              <div className="mt-4 border-t border-nexus-border pt-3">
+                <div className="flex justify-between items-center mb-2 px-1">
+                  <span className="text-xs font-semibold text-nexus-muted">Recent Captures</span>
+                  {history.length > 0 && (
+                    <button
+                      onClick={async () => {
+                        await storage.remove("capture-history")
+                        setHistory([])
+                      }}
+                      className="text-[10px] text-nexus-muted hover:text-nexus-error transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                {history.length > 0 ? (
+                  <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {history.map((item, idx) => (
+                      <li key={item.id || idx} className="bg-nexus-border/20 p-2.5 rounded-lg border border-nexus-border/50 hover:bg-nexus-border/40 transition-colors">
+                        <a href={item.url} target="_blank" rel="noreferrer" className="block outline-none">
+                          <h4 className="text-xs font-medium text-white mb-1 truncate">{item.title}</h4>
+                          <p className="text-[10px] text-nexus-muted line-clamp-2 leading-tight">{item.summary}</p>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-center py-6 px-4 bg-nexus-border/10 rounded-lg border border-dashed border-nexus-border/50">
+                    <svg className="w-6 h-6 mx-auto text-nexus-muted/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    <p className="text-[11px] text-nexus-muted mb-1">No captures yet</p>
+                    <p className="text-[9px] text-nexus-muted/70">Click Capture Page to save this site.</p>
+                  </div>
+                )}
               </div>
-            </div>
+            </>
           )}
-
-
-
-          {/* Capture Button */}
-          <button
-            onClick={handleCapture}
-            disabled={isCapturing || jwtStatus === "expired"}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm text-white bg-gradient-to-r from-[#7c5cfc] to-[#a855f7] hover:from-[#6b4ce0] hover:to-[#9333ea] shadow-lg shadow-[#7c5cfc33] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-          >
-            {isCapturing && (
-              <svg className="animate-nexus-spin h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-            )}
-            {statusLabel[status]}
-          </button>
-
-          {/* Capture History */}
-          <div className="mt-4 border-t border-nexus-border pt-3">
-            <div className="flex justify-between items-center mb-2 px-1">
-              <span className="text-xs font-semibold text-nexus-muted">Recent Captures</span>
-              {history.length > 0 && (
-                <button
-                  onClick={async () => {
-                    await storage.remove("capture-history")
-                    setHistory([])
-                  }}
-                  className="text-[10px] text-nexus-muted hover:text-nexus-error transition-colors"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            {history.length > 0 ? (
-              <ul className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {history.map((item, idx) => (
-                  <li key={item.id || idx} className="bg-nexus-border/20 p-2.5 rounded-lg border border-nexus-border/50 hover:bg-nexus-border/40 transition-colors">
-                    <a href={item.url} target="_blank" rel="noreferrer" className="block outline-none">
-                      <h4 className="text-xs font-medium text-white mb-1 truncate">{item.title}</h4>
-                      <p className="text-[10px] text-nexus-muted line-clamp-2 leading-tight">{item.summary}</p>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-center py-6 px-4 bg-nexus-border/10 rounded-lg border border-dashed border-nexus-border/50">
-                <svg className="w-6 h-6 mx-auto text-nexus-muted/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                </svg>
-                <p className="text-[11px] text-nexus-muted mb-1">No captures yet</p>
-                <p className="text-[9px] text-nexus-muted/70">Click Capture Page to save this site.</p>
-              </div>
-            )}
-          </div>
         </div>
         
         {/* Toast Container */}

@@ -11,9 +11,10 @@ The Project Nexus browser extension is built with [Plasmo](https://www.plasmo.co
 | File | Purpose |
 |---|---|
 | `popup.tsx` | The main popup UI shown when you click the toolbar icon. |
-| `options.tsx` | The settings page (BYOK keys, provider selection, JWT token). |
+| `options.tsx` | The settings page (BYOK keys, provider selection, account auth). |
 | `background.ts` | Service worker handling capture processing and API calls. |
 | `content.tsx` | Content script injected into pages for DOM extraction. |
+| `contents/auth-callback.ts` | Content script injected into `/auth/extension` to receive the session from the web app. |
 
 ## Permissions
 
@@ -36,11 +37,29 @@ content.tsx scrapes article text / YouTube transcript
   ↓
 background.ts calls LLM API (your key, direct call)
   ↓
-background.ts calls Supabase API (your JWT)
+background.ts calls Supabase API (persisted session)
   ↓
 Node saved + embedding generated + edges auto-created
   ↓
 popup.tsx shows success state
+```
+
+## Authentication Flow
+
+```
+User clicks "Sign In with Nexus" (popup or options)
+  ↓
+Extension opens /auth/extension in a new tab
+  ↓
+Web app reads Supabase session, posts it via window.postMessage
+  ↓
+contents/auth-callback.ts receives message, forwards to background
+  ↓
+background.ts calls supabase.auth.setSession() — stores full session
+  ↓
+Tab shows "Connected!" and auto-closes
+  ↓
+Tokens auto-refresh via Supabase SDK (no manual refresh needed)
 ```
 
 ## Storage Keys
@@ -53,7 +72,7 @@ All settings are stored in browser local storage via Plasmo Storage:
 | `anthropic-key` | Anthropic API key |
 | `gemini-key` | Gemini API key |
 | `active-provider` | Currently selected provider (`openai` / `anthropic` / `gemini`) |
-| `supabase-jwt` | Supabase session JWT for database writes |
+| `sb-*-auth-token` | Supabase session (managed automatically by Supabase SDK) |
 | `capture-history` | Array of recent capture records (title, URL, timestamp) |
 | `capture-count-YYYY-MM-DD` | Daily capture counter (keyed by date) |
 

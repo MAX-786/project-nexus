@@ -8,38 +8,53 @@ import { z } from "zod"
 
 import type { CaptureResult } from "~utils/extractor"
 
+// ---------------------------------------------------------------------------
+// Supabase client — uses @plasmohq/storage as the auth storage adapter so
+// that sessions (including refresh tokens) are persisted across service-worker
+// restarts and auto-refreshed by the Supabase SDK.
+// ---------------------------------------------------------------------------
+
 const storage = new Storage()
 
-async function getSupabaseClient() {
-  const url = process.env.PLASMO_PUBLIC_SUPABASE_URL || ""
-  const key = process.env.PLASMO_PUBLIC_SUPABASE_ANON_KEY || ""
-  
-  const jwt = (await storage.get("supabase-jwt"))?.trim()
-  
-  return createClient(url, key, {
-    global: {
-      headers: jwt ? { Authorization: `Bearer ${jwt}` } : {}
-    }
-  })
+const plasmoStorageAdapter = {
+  async getItem(key: string): Promise<string | null> {
+    return (await storage.get<string>(key)) ?? null
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    await storage.set(key, value)
+  },
+  async removeItem(key: string): Promise<void> {
+    await storage.remove(key)
+  },
 }
 
-async function getUserId(supabase: any): Promise<string> {
-  // Try native session first
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session?.user?.id) return session.user.id
+let supabaseInstance: ReturnType<typeof createClient> | null = null
 
-  // Fallback: decode JWT from storage
-  const jwt = (await storage.get("supabase-jwt"))?.trim()
-  if (jwt) {
-    try {
-      const payload = JSON.parse(atob(jwt.split('.')[1]))
-      if (payload.sub) return payload.sub
-    } catch (e) {
-      console.warn("Failed to decode JWT payload.", e)
-    }
+function getSupabaseClient() {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(
+      process.env.PLASMO_PUBLIC_SUPABASE_URL || "",
+      process.env.PLASMO_PUBLIC_SUPABASE_ANON_KEY || "",
+      {
+        auth: {
+          storage: plasmoStorageAdapter,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: false,
+        },
+      }
+    )
   }
+  return supabaseInstance
+}
 
-  throw new Error("Missing Supabase Auth Token. Please set it in Nexus Settings.")
+async function getUserId(): Promise<string> {
+  const supabase = getSupabaseClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) {
+    throw new Error("Not signed in. Click 'Sign In' in the Nexus extension popup.")
+  }
+  return user.id
 }
 
 function getModels(activeProvider: string, keys: { openai: string; gemini: string; anthropic: string }) {
@@ -87,11 +102,15 @@ function sendProgress(step: string) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Capture logic
+// ---------------------------------------------------------------------------
+
 async function processCapture(result: CaptureResult, sendResponse: (res: any) => void) {
   try {
     // --- Auth ---
-    const supabase = await getSupabaseClient()
-    const userId = await getUserId(supabase)
+    const supabase = getSupabaseClient()
+    const userId = await getUserId()
 
     // --- Duplicate Guard ---
     const { data: existing } = await supabase
@@ -234,30 +253,73 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
 
   } catch (err: any) {
     console.error("[Nexus] Capture failed:", err.message)
-
-    // Detect JWT expiration and clear the stored token
-    const msg = err.message || ""
-    const isJwtExpired = msg.includes("JWT expired") || msg.includes("Invalid JWT") || msg.includes("invalid claim: exp")
-
-    if (isJwtExpired) {
-      await storage.remove("supabase-jwt")
-      console.warn("[Nexus] JWT expired — cleared stored token.")
-      sendResponse({
-        success: false,
-        error: "Your auth token has expired. Please get a fresh token from the Nexus web app.",
-        code: "jwt_expired"
-      })
-    } else {
-      sendResponse({ success: false, error: msg })
-    }
+    sendResponse({ success: false, error: err.message })
   }
 }
 
-// Listen for messages from content script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+// ---------------------------------------------------------------------------
+// Message listeners
+// ---------------------------------------------------------------------------
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "process_capture" && message.payload) {
     processCapture(message.payload, sendResponse)
     return true // async response
+  }
+
+  // Save a new Supabase session (forwarded from the auth-callback content script)
+  if (message.action === "save_session") {
+    ;(async () => {
+      try {
+        const supabase = getSupabaseClient()
+        const { error } = await supabase.auth.setSession({
+          access_token: message.session.access_token,
+          refresh_token: message.session.refresh_token,
+        })
+        if (error) {
+          console.error("[Nexus] Failed to save session:", error.message)
+          sendResponse({ success: false, error: error.message })
+        } else {
+          console.log("[Nexus] Session saved — extension is authenticated.")
+          sendResponse({ success: true })
+        }
+      } catch (err: any) {
+        sendResponse({ success: false, error: err.message })
+      }
+    })()
+    return true
+  }
+
+  // Auth status query (used by popup & options page)
+  if (message.action === "get_auth_status") {
+    ;(async () => {
+      try {
+        const supabase = getSupabaseClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          sendResponse({ authenticated: true, user: { id: user.id, email: user.email } })
+        } else {
+          sendResponse({ authenticated: false, user: null })
+        }
+      } catch {
+        sendResponse({ authenticated: false, user: null })
+      }
+    })()
+    return true
+  }
+
+  // Sign out
+  if (message.action === "sign_out") {
+    ;(async () => {
+      const supabase = getSupabaseClient()
+      await supabase.auth.signOut()
+      // Null out the singleton so the next getSupabaseClient() creates a fresh instance.
+      // This is safe in a service worker: sign-out is a user-initiated action and
+      // subsequent operations will recreate the client from the (now empty) storage.
+      supabaseInstance = null
+      sendResponse({ success: true })
+    })()
+    return true
   }
 })
 
@@ -289,7 +351,7 @@ chrome.commands.onCommand.addListener((command) => {
 })
 
 // Listen for messages from content script for shortcut response
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender) => {
   if (message.action === "shortcut_capture_complete") {
     const tabId = sender.tab?.id
     if (tabId) {

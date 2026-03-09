@@ -24,17 +24,24 @@ Click the provider button (OpenAI / Anthropic / Gemini) to set it as the active 
 
 Each key field has a show/hide toggle (eye icon) so you can verify the key you've entered without exposing it by default.
 
-## Supabase JWT
+## Account Authentication
 
-The **Supabase JWT** field stores your session token for database access.
+The **Account** section in the Options page shows your current sign-in status and lets you sign in or out.
 
-- Obtain the token from the web dashboard: **Settings → Extension Authentication → Copy JWT Token**.
-- Paste it into this field.
-- JWTs expire after approximately 1 hour; you must refresh this periodically.
+### Signing In (One-Click Flow)
 
-:::tip Refresh JWT Easily
-Keep the Settings tab open in the web dashboard so you can quickly copy a fresh JWT when needed.
-:::
+1. Open the extension **Options** page (or click **Sign In with Nexus** in the popup).
+2. Click **Sign In with Nexus →**.
+3. A new tab opens at **`/auth/extension`** on the Nexus web app.
+4. If you're already signed in to the web app, your session is synced to the extension automatically.
+5. If you're not signed in, complete the login form and the session is synced immediately.
+6. The tab shows a success message and closes itself.
+
+The extension now uses a full Supabase session (access token + refresh token). Tokens **refresh automatically** — you never need to copy or paste anything.
+
+### Signing Out
+
+Click **Sign Out** in the Options page to revoke the extension's session. Your API keys remain stored.
 
 ## Storage
 

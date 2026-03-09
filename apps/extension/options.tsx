@@ -1,5 +1,5 @@
 import { useStorage } from "@plasmohq/storage/hook"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import "./style.css"
 
@@ -14,11 +14,36 @@ function Options() {
   const [anthropicKey, setAnthropicKey] = useStorage("anthropic-key", "")
   const [geminiKey, setGeminiKey] = useStorage("gemini-key", "")
   const [activeProvider, setActiveProvider] = useStorage("active-provider", "openai")
-  const [supabaseJwt, setSupabaseJwt] = useStorage("supabase-jwt", "")
+
+  // Auth state
+  const [authUser, setAuthUser] = useState<{ email: string } | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
   // Show/hide key toggles
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
   const toggleShow = (key: string) => setShowKeys(prev => ({ ...prev, [key]: !prev[key] }))
+
+  useEffect(() => {
+    chrome.runtime.sendMessage({ action: "get_auth_status" }, (response) => {
+      if (chrome.runtime.lastError) {
+        setAuthLoading(false)
+        return
+      }
+      setAuthUser(response?.authenticated ? { email: response.user.email } : null)
+      setAuthLoading(false)
+    })
+  }, [])
+
+  const handleSignIn = () => {
+    const siteUrl = process.env.PLASMO_PUBLIC_SITE_URL || "http://localhost:3000"
+    chrome.tabs.create({ url: `${siteUrl}/auth/extension` })
+  }
+
+  const handleSignOut = () => {
+    chrome.runtime.sendMessage({ action: "sign_out" }, () => {
+      setAuthUser(null)
+    })
+  }
 
   return (
     <div className="dark">
@@ -133,49 +158,48 @@ function Options() {
             </p>
           </section>
 
-          {/* JWT Section */}
+          {/* Account / Auth Section */}
           <section className="mt-8 pt-6 border-t border-nexus-border">
-            <div className="flex items-center gap-2 mb-1">
-              <label className="text-xs font-semibold uppercase tracking-wider text-nexus-muted">
-                Database Auth Token
-              </label>
-              <span className="text-[10px] bg-nexus-primary/15 text-nexus-primary px-1.5 py-0.5 rounded font-medium">
-                Required
-              </span>
-            </div>
-            <p className="text-[11px] text-nexus-muted mb-3">
-              Go to your{" "}
-              <a
-                href={`${process.env.PLASMO_PUBLIC_SITE_URL || "http://localhost:3000"}/api/jwt`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-nexus-primary hover:underline"
-              >
-                Nexus web app → /api/jwt
-              </a>
-              {" "}and copy the token.
-            </p>
-            <div className="relative">
-              <input
-                id="jwt"
-                type={showKeys["jwt"] ? "text" : "password"}
-                className="w-full bg-nexus-card border border-nexus-border rounded-lg px-3 py-2.5 text-sm text-nexus-text placeholder:text-nexus-muted/50 focus:outline-none focus:ring-2 focus:ring-nexus-primary/50 focus:border-nexus-primary/50 transition-all font-mono text-xs"
-                placeholder="eyJhbGciOiJIUzI1NiIs..."
-                value={supabaseJwt}
-                onChange={(e) => setSupabaseJwt(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => toggleShow("jwt")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-nexus-muted hover:text-nexus-text transition-colors"
-              >
-                {showKeys["jwt"] ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                )}
-              </button>
-            </div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-nexus-muted mb-3 block">
+              Account
+            </label>
+
+            {authLoading ? (
+              <div className="flex items-center gap-2 p-3 bg-nexus-card border border-nexus-border rounded-lg">
+                <div className="h-1.5 w-1.5 rounded-full bg-nexus-muted animate-pulse" />
+                <span className="text-xs text-nexus-muted">Checking auth status…</span>
+              </div>
+            ) : authUser ? (
+              <div className="p-3 bg-nexus-card border border-nexus-border rounded-lg space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-nexus-success" />
+                  <span className="text-xs text-nexus-success font-medium">Signed in</span>
+                </div>
+                <p className="text-xs text-nexus-muted font-mono truncate">{authUser.email}</p>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full text-xs font-medium py-1.5 px-3 rounded-md border border-nexus-border text-nexus-muted hover:text-nexus-error hover:border-nexus-error/50 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="p-3 bg-nexus-card border border-nexus-border rounded-lg space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-nexus-warning" />
+                  <span className="text-xs text-nexus-warning font-medium">Not signed in</span>
+                </div>
+                <p className="text-[11px] text-nexus-muted">
+                  Connect your Nexus account to enable page captures.
+                </p>
+                <button
+                  onClick={handleSignIn}
+                  className="w-full text-xs font-semibold py-2 px-3 rounded-lg bg-nexus-primary text-white hover:opacity-90 transition-opacity"
+                >
+                  Sign In with Nexus →
+                </button>
+              </div>
+            )}
           </section>
 
           {/* Status bar */}

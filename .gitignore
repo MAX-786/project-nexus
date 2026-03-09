@@ -13,3 +13,7 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Docusaurus
+apps/docs/.docusaurus
+apps/docs/build

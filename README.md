@@ -34,6 +34,7 @@ Project Nexus is an open-source, **Privacy-First (BYOK)** knowledge management s
 .
 ├── apps/extension    # Plasmo-based Browser Extension
 ├── apps/web          # Next.js Web Dashboard & API
+├── apps/docs         # Docusaurus Documentation Site
 ├── supabase_setup.sql # Database schema and RLS policies
 └── prd.md            # Product Requirements Document
 ```
@@ -75,7 +76,7 @@ After running `pnpm dev`, load the extension into Chrome:
 *   Enable "Developer mode"
 *   Click "Load unpacked" and select the `apps/extension/build/chrome-mv3-dev` folder.
 
-For more detailed setup guides, please see our [documentation](./docs/setup.md).
+For more detailed setup guides, please see our [documentation](./apps/docs/docs/intro.md) or run `pnpm --filter @nexus/docs start` to view the full docs site locally.
 
 ---
 

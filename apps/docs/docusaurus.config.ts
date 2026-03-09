@@ -11,8 +11,8 @@ const config: Config = {
     v4: true,
   },
 
-  url: 'https://docs.project-nexus-demo.com',
-  baseUrl: '/',
+  url: 'https://MAX-786.github.io',
+  baseUrl: '/project-nexus/',
 
   organizationName: 'MAX-786',
   projectName: 'project-nexus',

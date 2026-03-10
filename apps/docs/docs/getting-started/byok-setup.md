@@ -35,18 +35,14 @@ On the Extension Options page:
 2. Paste your API key into the corresponding input field.
 3. The key is saved automatically to browser local storage — no submit button needed.
 
-## Step 4: Set Your Supabase JWT
+## Step 4: Connect Extension
 
-The extension needs a Supabase session token to save captured data to your database:
+The extension needs to link to your Supabase session to save captured data to your database. We use a seamless one-click authentication flow:
 
-1. Log into the [Project Nexus web dashboard](http://localhost:3000).
-2. Go to **Settings → Extension Authentication**.
-3. Click **Copy JWT Token**.
-4. Return to the extension options page and paste the token into the **Supabase JWT** field.
-
-:::warning JWT Expiry
-Supabase JWTs expire after 1 hour by default. The extension popup shows a warning banner when your token is expiring soon or has expired. You will need to refresh it from the Settings page.
-:::
+1. Click the **Nexus icon** in your Chrome toolbar.
+2. In the popup, click the **Sign In** button (or go to **Settings → Extension Authentication** in the web dashboard and click **Connect Extension**).
+3. The extension will open a new tab to authenticate automatically.
+4. Once connected, your session is synced and will refresh automatically. You don't need to manually copy or paste any tokens.
 
 ## How BYOK Works
 

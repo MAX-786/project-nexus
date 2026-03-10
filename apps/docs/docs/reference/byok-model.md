@@ -36,17 +36,17 @@ Extension (Browser)
   ↓ constructs LLM API request
   → LLM Provider (OpenAI / Anthropic / Gemini) directly
   ← Structured JSON response
-  → Supabase (user's own database via JWT)
+  → Supabase (user's own database via session)
 ```
 
 No data ever passes through our Next.js backend during AI processing.
 
-## Supabase JWT Security
+## Supabase Session Security
 
-The extension uses a **Supabase session JWT** to authenticate database writes. This JWT:
+The extension uses a **Supabase session** (access & refresh tokens) to authenticate database writes. This session:
 - Is scoped to your Supabase project.
-- Expires after approximately 1 hour.
-- Is transferred from the web dashboard to the extension manually (Settings → Copy JWT).
+- Automatically refreshes in the background.
+- Is transferred securely from the web dashboard via the one-click Connect Extension flow.
 - Grants only the permissions defined by your Supabase RLS policies (i.e., only your own data).
 
 ## Tier Comparison
@@ -61,6 +61,6 @@ The extension uses a **Supabase session JWT** to authenticate database writes. T
 ## Security Considerations
 
 - API keys stored in `chrome.storage.local` are isolated to the extension origin. Web pages cannot access them.
-- The Supabase JWT provides no more access than your RLS policies allow.
+- The Supabase session provides no more access than your RLS policies allow.
 - If you are on a shared computer, always clear your extension storage when done.
 - Do not paste your API keys anywhere other than the extension Options page.

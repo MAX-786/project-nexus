@@ -24,7 +24,7 @@ The popup displays one of these status states during capture:
 | `processing` | Calling the LLM API to generate summary and entities. |
 | `done` | Capture complete. Node saved to database. |
 | `error` | Something went wrong. Error message is displayed. |
-| `jwt_expired` | The Supabase JWT has expired. Refresh from Settings. |
+| `jwt_expired` | The Supabase session has expired. Click Sign In in the popup. |
 
 ## AI Processing Output
 
@@ -59,14 +59,8 @@ The popup shows a scrollable list of your recent captures. Each entry displays:
 
 This is a local-only display from storage — it does not load from the database.
 
-## JWT Status Warning
+## Authentication Status
 
-The extension monitors your Supabase JWT and shows a status badge:
+The extension monitors your Supabase session and displays your authentication status in the popup. If you are not authenticated, you will see a **Sign In** button. Once signed in, your session automatically refreshes.
 
-| Status | Condition | Badge Color |
-|---|---|---|
-| **Valid** | Token has more than 15 minutes remaining | Green |
-| **Expiring Soon** | Token has less than 15 minutes remaining | Yellow |
-| **Expired** | Token has expired | Red |
-
-When expired, captures will fail with a "Not authenticated" error. Refresh your JWT from the web dashboard's Settings page.
+When signed out, captures will fail with a "Not authenticated" error. Click **Sign In** from the extension popup to reconnect to your dashboard session.

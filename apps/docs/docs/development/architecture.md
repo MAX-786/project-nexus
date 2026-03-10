@@ -32,7 +32,7 @@ A technical overview of how Project Nexus is structured.
                         ┌──────────────────────────────┐
                         │          Supabase             │
                         │  PostgreSQL + pgvector        │
-                        │  Auth (JWT)                   │
+                        │  Auth (Session)               │
                         │  Row Level Security           │
                         └──────────────────────────────┘
 ```

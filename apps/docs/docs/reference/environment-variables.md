@@ -48,6 +48,6 @@ For the standard free tier, AI provider keys are stored in **browser local stora
 | `anthropic-key` | Anthropic |
 | `gemini-key` | Google Gemini |
 | `active-provider` | Selected provider (`openai` / `anthropic` / `gemini`) |
-| `supabase-jwt` | Supabase session JWT for extension database access |
+| `sb-*-auth-token` | Supabase session (managed automatically by Supabase SDK) |
 
 These are set via the extension's Options page. See [BYOK Setup](../getting-started/byok-setup.md).

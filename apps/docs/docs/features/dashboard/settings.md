@@ -31,12 +31,7 @@ Configure the AI provider and mode for the [Memory Agent](./memory.md).
 
 This section is for linking the browser extension to your dashboard session.
 
-1. Click **"Copy JWT Token"** to copy your current Supabase session token.
-2. Paste the token into the **Supabase JWT** field in the extension's Options page.
-
-:::info JWT Lifetime
-Supabase session tokens expire after approximately 1 hour. You will need to refresh the token in the extension when it expires.
-:::
+Click **Connect Extension** to securely sync your current Supabase session to the extension. The session uses both access and refresh tokens, so it will refresh automatically without any manual copying or pasting.
 
 ### Danger Zone
 

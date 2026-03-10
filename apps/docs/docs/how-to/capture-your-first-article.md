@@ -10,7 +10,7 @@ A practical, step-by-step guide to capturing your first article into Project Nex
 
 - Extension installed and loaded in Chrome (see [Installation](../getting-started/installation.md)).
 - At least one BYOK API key configured (see [BYOK Setup](../getting-started/byok-setup.md)).
-- A Supabase JWT token entered in the extension options.
+- The extension connected to your account (via the **Sign In** button in the popup).
 
 ## Steps
 
@@ -46,7 +46,7 @@ Open the Project Nexus dashboard (`http://localhost:3000/dashboard`). Your artic
 
 | Problem | Solution |
 |---|---|
-| "Not authenticated" error | Your JWT has expired. Refresh it from **Settings → Extension Authentication**. |
+| "Not authenticated" error | Your session has expired or is disconnected. Click **Sign In** in the extension popup to reconnect. |
 | "No content extracted" | The page may not have a standard `<article>` element. Try a different article. |
-| Capture button is greyed out | Check that your API key and JWT are entered in the extension options. |
+| Capture button is greyed out | Check that your API key is configured and you are signed in to the extension. |
 | AI processing error | Verify your API key is valid and has sufficient quota. |

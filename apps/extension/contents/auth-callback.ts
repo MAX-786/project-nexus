@@ -12,7 +12,7 @@ import type { PlasmoCSConfig } from "plasmo"
 const SITE_URL = process.env.PLASMO_PUBLIC_SITE_URL || "http://localhost:3000"
 
 export const config: PlasmoCSConfig = {
-  matches: [`${SITE_URL}/auth/extension`],
+  matches: ["<all_urls>"],
   all_frames: false,
   run_at: "document_idle"
 }

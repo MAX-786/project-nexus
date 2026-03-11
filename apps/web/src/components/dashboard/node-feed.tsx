@@ -246,11 +246,11 @@ export default function NodeFeed() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
-  // Multi-select state
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [showBatchDeleteDialog, setShowBatchDeleteDialog] = useState(false)
   const [isBatchDeleting, setIsBatchDeleting] = useState(false)
-  const [showTagDialog, setShowTagDialog] = useState(false)
+  const [showCollectionDialog, setShowCollectionDialog] = useState(false)
+  const [collectionDialogNodeIds, setCollectionDialogNodeIds] = useState<string[]>([])
 
   // Collections state
   const [collections, setCollections] = useState<DBCollection[]>([])
@@ -832,14 +832,32 @@ export default function NodeFeed() {
             <Separator orientation="vertical" className="h-6 mx-1 bg-border/50" />
             
             <div className="flex items-center gap-1">
+              <TagManager 
+                nodeIds={Array.from(selectedNodeIds)}
+                onTagsChanged={loadTagsData}
+                trigger={
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="rounded-full h-8 px-3 gap-1.5 hover:bg-primary/10 hover:text-primary transition-colors"
+                  >
+                    <Tags className="w-3.5 h-3.5" />
+                    <span>Tag</span>
+                  </Button>
+                }
+              />
+              
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="rounded-full h-8 px-3 gap-1.5 hover:bg-primary/10 hover:text-primary transition-colors"
-                onClick={() => setShowTagDialog(true)}
+                onClick={() => {
+                  setCollectionDialogNodeIds(Array.from(selectedNodeIds))
+                  setShowCollectionDialog(true)
+                }}
               >
-                <Tag className="w-3.5 h-3.5" />
-                <span>Tag</span>
+                <Inbox className="w-3.5 h-3.5" />
+                <span>Collection</span>
               </Button>
               
               <Button 
@@ -1025,6 +1043,20 @@ export default function NodeFeed() {
 
                 <Separator className="bg-border/30" />
 
+                <section>
+                  <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    <Tags className="h-3.5 w-3.5" /> Tags ({nodeTags.filter(nt => nt.node_id === selectedNode.id).length})
+                  </h3>
+                  <div className="mb-2">
+                    <NodeTagBadges nodeId={selectedNode.id} tags={tags} nodeTags={nodeTags} />
+                  </div>
+                  {nodeTags.filter(nt => nt.node_id === selectedNode.id).length === 0 && (
+                    <p className="text-xs text-muted-foreground mb-2">No tags assigned.</p>
+                  )}
+                </section>
+
+                <Separator className="bg-border/30" />
+
                 {selectedNode && <HighlightsPanel nodeId={selectedNode.id} />}
 
                 <Separator className="bg-border/30" />
@@ -1140,6 +1172,27 @@ export default function NodeFeed() {
                 </section>
 
                 <div className="flex gap-2 flex-wrap">
+                  <TagManager 
+                    nodeIds={[selectedNode.id]}
+                    onTagsChanged={loadTagsData}
+                    trigger={
+                      <Button variant="outline" className="flex-1 gap-2 border-border/50 hover:bg-muted min-w-[140px]">
+                        <Tags className="h-4 w-4" />
+                        Tag
+                      </Button>
+                    }
+                  />
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 gap-2 border-border/50 hover:bg-muted min-w-[140px]"
+                    onClick={() => {
+                      setCollectionDialogNodeIds([selectedNode.id])
+                      setShowCollectionDialog(true)
+                    }}
+                  >
+                    <Inbox className="h-4 w-4" />
+                    Collection
+                  </Button>
                   <Button variant="outline" className="flex-1 gap-2 border-border/50 hover:border-primary/30 min-w-[140px]" asChild>
                     <a href={selectedNode.url} target="_blank" rel="noreferrer">
                       Original Page <ExternalLink className="h-4 w-4" />
@@ -1191,11 +1244,13 @@ export default function NodeFeed() {
       </Sheet>
       {/* Collection Tagger Dialog */}
       <CollectionTaggerDialog
-        open={showTagDialog}
-        onOpenChange={setShowTagDialog}
-        selectedNodeIds={Array.from(selectedNodeIds)}
+        open={showCollectionDialog}
+        onOpenChange={setShowCollectionDialog}
+        selectedNodeIds={collectionDialogNodeIds}
         onSuccess={() => {
-          setSelectedNodeIds(new Set())
+          if (collectionDialogNodeIds.length === selectedNodeIds.size) {
+            setSelectedNodeIds(new Set())
+          }
           loadCollectionsData()
         }}
       />

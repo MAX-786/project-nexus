@@ -30,9 +30,10 @@ const TAG_COLORS = [
 interface TagManagerProps {
   nodeIds?: string[]
   onTagsChanged?: () => void
+  trigger?: React.ReactNode
 }
 
-export function TagManager({ nodeIds, onTagsChanged }: TagManagerProps) {
+export function TagManager({ nodeIds, onTagsChanged, trigger }: TagManagerProps) {
   const [tags, setTags] = useState<DBTag[]>([])
   const [nodeTags, setNodeTags] = useState<{ node_id: string; tag_id: string }[]>([])
   const [newTagName, setNewTagName] = useState('')
@@ -109,10 +110,14 @@ export function TagManager({ nodeIds, onTagsChanged }: TagManagerProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Tags className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Tags</span>
-        </Button>
+        {trigger ? (
+          trigger
+        ) : (
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Tags className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Tags</span>
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

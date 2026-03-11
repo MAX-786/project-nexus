@@ -26,8 +26,8 @@ import {
   markDigestRead,
   markAllDigestsRead,
   deleteDigest,
-  buildDigestPrompt,
 } from '@/app/dashboard/digest/actions'
+import { buildDigestPrompt } from '@/lib/digest-prompts'
 
 import type { DBDailyDigest } from '@/lib/types'
 

@@ -187,7 +187,7 @@ export async function importFromJSON(jsonString: string) {
 
   // Import nodes
   if (Array.isArray(data.nodes) && data.nodes.length > 0) {
-    const nodesToInsert = data.nodes.map((n: Record<string, unknown>) => ({
+    const nodesToInsert = (data.nodes as Record<string, unknown>[]).map((n) => ({
       url: n.url as string,
       title: n.title as string,
       summary: n.summary as string,
@@ -205,7 +205,7 @@ export async function importFromJSON(jsonString: string) {
 
   // Import collections
   if (Array.isArray(data.collections) && data.collections.length > 0) {
-    const collectionsToInsert = data.collections.map((c: Record<string, unknown>) => ({
+    const collectionsToInsert = (data.collections as Record<string, unknown>[]).map((c) => ({
       name: c.name as string,
       color: (c.color as string) || null,
       user_id: user.id,
@@ -216,7 +216,7 @@ export async function importFromJSON(jsonString: string) {
 
   // Import tags
   if (Array.isArray(data.tags) && data.tags.length > 0) {
-    const tagsToInsert = data.tags.map((t: Record<string, unknown>) => ({
+    const tagsToInsert = (data.tags as Record<string, unknown>[]).map((t) => ({
       name: t.name as string,
       color: (t.color as string) || '#6b7280',
       user_id: user.id,

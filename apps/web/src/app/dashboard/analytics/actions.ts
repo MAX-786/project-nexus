@@ -1,8 +1,7 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
-
 import type { AnalyticsDataPoint, EntityDistribution, AnalyticsSummary } from '@/lib/types'
+import { createClient } from '@/utils/supabase/server'
 
 const MS_PER_DAY = 86400000
 

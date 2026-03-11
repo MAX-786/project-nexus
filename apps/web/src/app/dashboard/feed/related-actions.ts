@@ -1,8 +1,7 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
-
 import type { RelatedNode } from '@/lib/types'
+import { createClient } from '@/utils/supabase/server'
 
 /**
  * Get related nodes for a given node using multiple signals:

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface ShortcutAction {
@@ -15,7 +15,7 @@ export function useKeyboardShortcuts() {
   const router = useRouter()
   const [showHelp, setShowHelp] = useState(false)
 
-  const shortcuts: ShortcutAction[] = [
+  const shortcuts: ShortcutAction[] = useMemo(() => [
     // Navigation
     { key: '1', label: '1', description: 'Go to Feed', category: 'navigation', handler: () => router.push('/dashboard/feed') },
     { key: '2', label: '2', description: 'Go to Graph', category: 'navigation', handler: () => router.push('/dashboard/graph') },
@@ -24,7 +24,7 @@ export function useKeyboardShortcuts() {
     { key: '5', label: '5', description: 'Go to Settings', category: 'navigation', handler: () => router.push('/dashboard/settings') },
     // General
     { key: '?', label: '?', description: 'Show keyboard shortcuts', category: 'general', handler: () => setShowHelp(prev => !prev) },
-  ]
+  ], [router])
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const target = e.target as HTMLElement
@@ -44,8 +44,7 @@ export function useKeyboardShortcuts() {
       e.preventDefault()
       matchedShortcut.handler()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router])
+  }, [shortcuts])
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)

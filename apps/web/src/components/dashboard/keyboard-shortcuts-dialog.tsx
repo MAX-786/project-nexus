@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+
 import {
   Dialog,
   DialogContent,
@@ -23,6 +25,12 @@ interface KeyboardShortcutsDialogProps {
 }
 
 export function KeyboardShortcutsDialog({ open, onOpenChange, shortcuts }: KeyboardShortcutsDialogProps) {
+  const [modKey, setModKey] = useState('⌘')
+
+  useEffect(() => {
+    const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+    setModKey(isMac ? '⌘' : 'Ctrl+')
+  }, [])
   const categories = [
     { id: 'navigation', title: 'Navigation' },
     { id: 'actions', title: 'Actions' },
@@ -60,7 +68,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, shortcuts }: Keybo
             )
           })}
           <p className="text-xs text-muted-foreground text-center">
-            Press <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">⌘K</kbd> for search
+            Press <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px]">{modKey}K</kbd> for search
           </p>
         </div>
       </DialogContent>

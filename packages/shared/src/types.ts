@@ -72,6 +72,16 @@ export interface DBNodeTag {
   created_at: string
 }
 
+export interface DBHighlight {
+  id: string
+  user_id: string
+  node_id: string
+  text: string
+  note: string | null
+  color: string
+  created_at: string
+}
+
 export interface DBConsolidation {
   id: string
   user_id: string

@@ -57,6 +57,8 @@ import {
   Filter,
   Star,
   Tags,
+  ArrowUpDown,
+  Calendar,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -78,6 +80,7 @@ import { createClient } from '@/utils/supabase/client'
 
 import { CollectionTaggerDialog } from './collection-tagger-dialog'
 import { FeedEmptyState } from './empty-states'
+import { HighlightsPanel } from './highlights-panel'
 import { TagManager, NodeTagBadges } from './tag-manager'
 
 // ---- Helpers ----
@@ -250,6 +253,11 @@ export default function NodeFeed() {
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false)
   const toggleBookmarkInStore = useNodesStore((s) => s.toggleBookmark)
 
+  // Sort & date filter state
+  type SortOption = 'newest' | 'oldest' | 'most-connections' | 'most-entities'
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all')
+
   // Fetch collections data
   const loadCollectionsData = useCallback(async () => {
     const supabase = createClient()
@@ -418,7 +426,7 @@ export default function NodeFeed() {
 
 
 
-  // Apply filters (collections, tags, bookmarks)
+  // Apply filters (collections, tags, bookmarks, date) and sort
   const displayNodes = (() => {
     let result = filteredNodes
     if (showBookmarksOnly) result = result.filter(n => n.is_bookmarked)
@@ -430,7 +438,30 @@ export default function NodeFeed() {
       const collectionNodeIds = new Set(nodeCollections.filter(nc => nc.collection_id === selectedCollectionId).map(nc => nc.node_id))
       result = result.filter(n => collectionNodeIds.has(n.id))
     }
-    return result
+    // Date filter
+    if (dateFilter !== 'all') {
+      const days = dateFilter === '7d' ? 7 : dateFilter === '30d' ? 30 : 90
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - days)
+      result = result.filter(n => new Date(n.created_at) >= cutoff)
+    }
+    // Sort
+    const sorted = [...result]
+    switch (sortBy) {
+      case 'oldest':
+        sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        break
+      case 'most-connections':
+        sorted.sort((a, b) => connectionCount(b.id) - connectionCount(a.id))
+        break
+      case 'most-entities':
+        sorted.sort((a, b) => nodeEntities(b.id).length - nodeEntities(a.id).length)
+        break
+      default: // newest
+        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        break
+    }
+    return sorted
   })()
 
   // Virtualized list
@@ -463,6 +494,9 @@ export default function NodeFeed() {
               {nodes.length} {nodes.length === 1 ? 'memory' : 'memories'} captured
               {searchQuery && ` · ${filteredNodes.length} matching search`}
               {selectedCollection && ` · filtered by ${selectedCollection.name}`}
+              {showBookmarksOnly && ' · bookmarks only'}
+              {dateFilter !== 'all' && ` · last ${dateFilter}`}
+              {displayNodes.length !== nodes.length && !searchQuery && ` · ${displayNodes.length} shown`}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -530,6 +564,42 @@ export default function NodeFeed() {
               </DropdownMenu>
             )}
 
+            {/* Date filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant={dateFilter !== 'all' ? "default" : "outline"} size="sm" className="gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">
+                    {dateFilter === 'all' ? 'All Time' : dateFilter === '7d' ? 'Last 7d' : dateFilter === '30d' ? 'Last 30d' : 'Last 90d'}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setDateFilter('all')}>All Time</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDateFilter('7d')}>Last 7 Days</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDateFilter('30d')}>Last 30 Days</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDateFilter('90d')}>Last 90 Days</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Sort */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">
+                    {sortBy === 'newest' ? 'Newest' : sortBy === 'oldest' ? 'Oldest' : sortBy === 'most-connections' ? 'Connections' : 'Entities'}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSortBy('newest')}>Newest First</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('oldest')}>Oldest First</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('most-connections')}>Most Connections</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('most-entities')}>Most Entities</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {nodes.length > 0 && (
             <div className="flex items-center gap-2">
               <Button
@@ -560,7 +630,7 @@ export default function NodeFeed() {
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
             <Search className="h-8 w-8 text-muted-foreground mb-3" />
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? `No results for "${searchQuery}"` : showBookmarksOnly ? 'No bookmarked memories.' : 'No memories in this collection.'}
+              {searchQuery ? `No results for "${searchQuery}"` : showBookmarksOnly ? 'No bookmarked memories.' : dateFilter !== 'all' ? `No memories in the last ${dateFilter}.` : selectedTagId ? 'No memories with this tag.' : 'No memories match your filters.'}
             </p>
           </div>
         ) : (
@@ -940,6 +1010,10 @@ export default function NodeFeed() {
                     <p className="text-xs text-muted-foreground">No entities extracted for this node.</p>
                   )}
                 </section>
+
+                <Separator className="bg-border/30" />
+
+                {selectedNode && <HighlightsPanel nodeId={selectedNode.id} />}
 
                 <Separator className="bg-border/30" />
 

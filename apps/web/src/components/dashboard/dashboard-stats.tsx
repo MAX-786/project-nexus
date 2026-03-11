@@ -20,7 +20,11 @@ interface StatCardProps {
 
 function StatCard({ icon, label, value, gradient, subtitle }: StatCardProps) {
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
+    <div
+      className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
+      role="status"
+      aria-label={`${label}: ${value.toLocaleString()}`}
+    >
       <div
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${gradient} shadow-sm`}
       >
@@ -98,7 +102,7 @@ export default function DashboardStats({ dueCount }: DashboardStatsProps) {
   }
 
   return (
-    <div className="border-b border-border/50 bg-background/60 backdrop-blur-sm">
+    <div className="border-b border-border/50 bg-background/60 backdrop-blur-sm" role="region" aria-label="Dashboard statistics">
       <div className={cn('grid gap-3 px-6 py-3 stagger-children', stats.length > 4 ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4')}>
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />

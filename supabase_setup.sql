@@ -231,6 +231,26 @@ CREATE POLICY "Users can delete own consolidations" ON public.consolidations FOR
 CREATE INDEX consolidations_user_id_idx ON public.consolidations (user_id);
 CREATE INDEX consolidations_created_at_idx ON public.consolidations (created_at DESC);
 
+-- 13. Daily Digests table (AI-generated daily summaries)
+CREATE TABLE public.daily_digests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  node_ids UUID[] NOT NULL DEFAULT '{}',
+  insights TEXT[] DEFAULT '{}',
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.daily_digests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own digests" ON public.daily_digests FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own digests" ON public.daily_digests FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own digests" ON public.daily_digests FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own digests" ON public.daily_digests FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX idx_daily_digests_user_id ON public.daily_digests(user_id);
+CREATE INDEX idx_daily_digests_created_at ON public.daily_digests(created_at DESC);
+
 -- ============================================================================
 -- MIGRATION: Run these statements on an EXISTING database to add new columns.
 -- Skip if creating tables fresh (the above CREATE TABLE statements already include them).

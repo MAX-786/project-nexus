@@ -81,3 +81,37 @@ export async function submitReview(reviewId: string, rating: number) {
   revalidatePath('/dashboard/review')
   return { success: true, nextInterval: newInterval }
 }
+
+/**
+ * Snooze a review by deferring it by a specified number of hours.
+ * Issue #75: Enhanced Review Experience
+ */
+export async function snoozeReview(reviewId: string, hours: number) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const nextReviewDate = new Date()
+  nextReviewDate.setHours(nextReviewDate.getHours() + hours)
+
+  const { error: updateError } = await supabase
+    .from('reviews')
+    .update({
+      next_review_date: nextReviewDate.toISOString(),
+    })
+    .eq('id', reviewId)
+    .eq('user_id', user.id)
+
+  if (updateError) {
+    return { error: updateError.message }
+  }
+
+  revalidatePath('/dashboard/review')
+  return { success: true }
+}

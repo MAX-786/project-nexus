@@ -14,6 +14,18 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Nexus — Your Second Brain",
   description: "AI-powered knowledge capture, automatic graph linking, and spaced repetition. Open-source, privacy-first, BYOK.",
+  manifest: "/manifest.json",
+  themeColor: "#6d28d9",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Nexus",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default function RootLayout({

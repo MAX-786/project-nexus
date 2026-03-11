@@ -82,6 +82,7 @@ import { CollectionTaggerDialog } from './collection-tagger-dialog'
 import { FeedEmptyState } from './empty-states'
 import { HighlightsPanel } from './highlights-panel'
 import { TagManager, NodeTagBadges } from './tag-manager'
+import RelatedNodes from './related-nodes'
 
 // ---- Helpers ----
 
@@ -1170,6 +1171,13 @@ export default function NodeFeed() {
                     </div>
                   )}
                 </section>
+
+                {/* Related Content — Issue #73 */}
+                <Separator className="bg-border/30" />
+                <RelatedNodes
+                  nodeId={selectedNode.id}
+                  onNavigate={(id) => setSelectedNodeId(id)}
+                />
 
                 <div className="flex gap-2 flex-wrap">
                   <TagManager 

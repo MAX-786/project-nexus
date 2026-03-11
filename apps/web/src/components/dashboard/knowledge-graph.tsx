@@ -35,6 +35,10 @@ import {
   Sparkles,
   Hand,
   AlertTriangle,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+  Filter,
 } from 'lucide-react'
 import React, { useState, useMemo, useCallback, useTransition, useEffect } from 'react'
 import '@xyflow/react/dist/style.css'
@@ -66,12 +70,42 @@ interface KnowledgeGraphProps {
   initialEntities: DBEntity[]
 }
 
+// Entity type color map for visual encoding
+const ENTITY_TYPE_COLORS: Record<string, string> = {
+  person: 'bg-blue-500',
+  concept: 'bg-purple-500',
+  tool: 'bg-emerald-500',
+  technology: 'bg-cyan-500',
+  organization: 'bg-amber-500',
+  location: 'bg-rose-500',
+  event: 'bg-indigo-500',
+}
+
+function getNodeAccentColor(entities: DBEntity[]): string {
+  if (!entities || entities.length === 0) return 'border-border/50'
+  const primaryType = entities[0]?.type?.toLowerCase() ?? ''
+  const colorMap: Record<string, string> = {
+    person: 'border-blue-500/40',
+    concept: 'border-purple-500/40',
+    tool: 'border-emerald-500/40',
+    technology: 'border-cyan-500/40',
+    organization: 'border-amber-500/40',
+    location: 'border-rose-500/40',
+    event: 'border-indigo-500/40',
+  }
+  return colorMap[primaryType] ?? 'border-border/50'
+}
+
 // Custom Node Component
 function NexusNode({ data }: NodeProps) {
-  const entityCount = (data.entities as DBEntity[])?.length ?? 0
+  const entities = (data.entities as DBEntity[]) ?? []
+  const entityCount = entities.length
   const isConnectMode = data.isConnectMode as boolean
+  const isFocusDimmed = data.isFocusDimmed as boolean
+  const accentBorder = getNodeAccentColor(entities)
+
   return (
-    <div className="group relative">
+    <div className={`group relative transition-opacity duration-300 ${isFocusDimmed ? 'opacity-20' : 'opacity-100'}`}>
       <Handle
         type="target"
         position={Position.Left}
@@ -85,7 +119,7 @@ function NexusNode({ data }: NodeProps) {
         className={`min-w-[180px] max-w-[220px] rounded-xl bg-card/90 backdrop-blur-sm border p-3 shadow-lg shadow-black/20 transition-all duration-300 cursor-pointer ${
           isConnectMode
             ? 'border-emerald-500/40 hover:border-emerald-400 hover:shadow-emerald-500/20'
-            : 'border-border/50 hover:border-primary/40 hover:shadow-primary/10'
+            : `${accentBorder} hover:border-primary/40 hover:shadow-primary/10`
         }`}
       >
         <p className="text-xs font-semibold text-foreground leading-tight line-clamp-2 mb-1">
@@ -95,9 +129,19 @@ function NexusNode({ data }: NodeProps) {
           {data.summary as string}
         </p>
         {entityCount > 0 && (
-          <div className="mt-2 flex items-center gap-1">
-            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-            <span className="text-[10px] text-primary/70">{entityCount} entities</span>
+          <div className="mt-2 flex items-center gap-1 flex-wrap">
+            {entities.slice(0, 3).map((e, i) => {
+              const colorClass = ENTITY_TYPE_COLORS[e.type?.toLowerCase()] ?? 'bg-muted-foreground'
+              return (
+                <span key={i} className="flex items-center gap-0.5">
+                  <div className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />
+                  <span className="text-[9px] text-muted-foreground truncate max-w-[60px]">{e.name}</span>
+                </span>
+              )
+            })}
+            {entityCount > 3 && (
+              <span className="text-[9px] text-primary/70">+{entityCount - 3}</span>
+            )}
           </div>
         )}
       </div>
@@ -136,11 +180,37 @@ function KnowledgeGraphInner({
   const [isPending, startTransition] = useTransition()
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
 
+  // Focus mode — dim unrelated nodes when hovering (#74)
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null)
+
+  // Entity type filter (#74)
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string | null>(null)
+
   // Cluster pagination state
   const [showAll, setShowAll] = useState(false)
 
   // Track DB edges for manual edge detection
   const [dbEdges, setDbEdges] = useState<DBEdge[]>(initialEdges)
+
+  // Compute unique entity types for filter (#74)
+  const entityTypes = useMemo(() => {
+    const types = new Set<string>()
+    for (const e of initialEntities) {
+      if (e.type) types.add(e.type.toLowerCase())
+    }
+    return Array.from(types).sort()
+  }, [initialEntities])
+
+  // Compute focus mode connected IDs
+  const focusConnectedIds = useMemo(() => {
+    if (!focusNodeId) return null
+    const connected = new Set<string>([focusNodeId])
+    for (const edge of dbEdges) {
+      if (edge.source_id === focusNodeId) connected.add(edge.target_id)
+      if (edge.target_id === focusNodeId) connected.add(edge.source_id)
+    }
+    return connected
+  }, [focusNodeId, dbEdges])
 
   // BFS cluster computation
   const isClusterActive = !showAll && !!selectedNodeId
@@ -151,17 +221,31 @@ function KnowledgeGraphInner({
 
   // Map DB Nodes to React Flow Nodes — use a grid layout instead of circular
   const initialFlowNodes: FlowNode[] = useMemo(() => {
-    const cols = Math.max(3, Math.ceil(Math.sqrt(initialNodes.length)))
+    // Filter by entity type if active
+    let filteredDbNodes = initialNodes
+    if (entityTypeFilter) {
+      const matchingNodeIds = new Set(
+        initialEntities
+          .filter((e) => e.type?.toLowerCase() === entityTypeFilter)
+          .map((e) => e.node_id)
+          .filter(Boolean) as string[]
+      )
+      filteredDbNodes = initialNodes.filter((n) => matchingNodeIds.has(n.id))
+    }
+
+    const cols = Math.max(3, Math.ceil(Math.sqrt(filteredDbNodes.length)))
     const spacingX = 300
     const spacingY = 180
 
-    return initialNodes.map((node, i) => {
+    return filteredDbNodes.map((node, i) => {
       const col = i % cols
       const row = Math.floor(i / cols)
 
       // Add slight random offset for organic feel
       const jitterX = Math.sin(i * 1337) * 40
       const jitterY = Math.cos(i * 7919) * 30
+
+      const isFocusDimmed = focusConnectedIds !== null && !focusConnectedIds.has(node.id)
 
       return {
         id: node.id,
@@ -175,10 +259,11 @@ function KnowledgeGraphInner({
           summary: node.summary,
           entities: initialEntities.filter((e) => e.node_id === node.id),
           isConnectMode: connectMode,
+          isFocusDimmed,
         },
       }
     })
-  }, [initialNodes, initialEntities, connectMode])
+  }, [initialNodes, initialEntities, connectMode, entityTypeFilter, focusConnectedIds])
 
   // Map DB Edges to React Flow Edges — distinguish manual vs auto
   const initialFlowEdges: FlowEdge[] = useMemo(() => {
@@ -260,6 +345,18 @@ function KnowledgeGraphInner({
     [setSelectedNodeId, connectMode]
   )
 
+  // Focus mode: on mouse enter/leave for nodes
+  const onNodeMouseEnter = useCallback(
+    (_event: React.MouseEvent, node: FlowNode) => {
+      if (!connectMode) setFocusNodeId(node.id)
+    },
+    [connectMode]
+  )
+
+  const onNodeMouseLeave = useCallback(() => {
+    setFocusNodeId(null)
+  }, [])
+
   // Handle edge click — select edge for context actions
   const onEdgeClick = useCallback(
     (_event: React.MouseEvent, edge: FlowEdge) => {
@@ -337,6 +434,7 @@ function KnowledgeGraphInner({
 
   const handlePaneClick = useCallback(() => {
     setSelectedEdgeId(null)
+    setFocusNodeId(null)
   }, [])
 
   // Show All toggle handler with large graph warning
@@ -419,7 +517,45 @@ function KnowledgeGraphInner({
       </div>
 
       {/* Cluster Controls — Top Right */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2 flex-wrap justify-end">
+        {/* Entity Type Filter (#74) */}
+        {entityTypes.length > 0 && (
+          <div className="flex items-center gap-1.5 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-3 py-1.5 shadow-lg">
+            <Filter className="h-3 w-3 text-muted-foreground" />
+            <select
+              value={entityTypeFilter ?? ''}
+              onChange={(e) => setEntityTypeFilter(e.target.value || null)}
+              className="text-xs bg-transparent border-none outline-none text-muted-foreground cursor-pointer"
+              aria-label="Filter by entity type"
+            >
+              <option value="">All types</option>
+              {entityTypes.map((type) => (
+                <option key={type} value={type} className="capitalize">
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Zoom Controls (#74) */}
+        <div className="flex items-center gap-1 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 p-1 shadow-lg">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => { const rf = document.querySelector('.react-flow'); if (rf) { fitView({ duration: FIT_VIEW_DURATION, padding: FIT_VIEW_PADDING }) } }}
+                aria-label="Zoom to fit"
+              >
+                <Maximize className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Zoom to fit all nodes</TooltipContent>
+          </Tooltip>
+        </div>
+
         {/* Node Count Indicator */}
         <div className="flex items-center gap-2 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-3 py-1.5 shadow-lg">
           <Network className="h-3 w-3 text-muted-foreground" />
@@ -511,8 +647,8 @@ function KnowledgeGraphInner({
         )
       })()}
 
-      {/* Graph Legend */}
-      <div className="absolute bottom-4 left-4 z-10 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-4 py-3 shadow-lg">
+      {/* Graph Legend — Enhanced with entity type colors (#74) */}
+      <div className="absolute bottom-4 left-4 z-10 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-4 py-3 shadow-lg max-w-[200px]">
         <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">Legend</p>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
@@ -523,10 +659,14 @@ function KnowledgeGraphInner({
             <div className="w-6 h-0.5 border-t-2 border-dashed border-emerald-500/50" />
             <span className="text-[10px] text-muted-foreground">Manual link</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-2.5 w-2.5 rounded-full bg-primary/60" />
-            <span className="text-[10px] text-muted-foreground">Knowledge node</span>
-          </div>
+          <div className="my-1.5 border-t border-border/30" />
+          <p className="text-[9px] font-medium text-muted-foreground/70 uppercase tracking-wider">Entity Types</p>
+          {Object.entries(ENTITY_TYPE_COLORS).slice(0, 5).map(([type, colorClass]) => (
+            <div key={type} className="flex items-center gap-2">
+              <div className={`h-2 w-2 rounded-full ${colorClass}`} />
+              <span className="text-[10px] text-muted-foreground capitalize">{type}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -537,6 +677,8 @@ function KnowledgeGraphInner({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
         onEdgeClick={onEdgeClick}
         onConnect={connectMode ? onConnect : undefined}
         onPaneClick={handlePaneClick}

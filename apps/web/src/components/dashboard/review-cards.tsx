@@ -1,5 +1,3 @@
-'use client'
-
 import {
   Eye,
   RotateCcw,
@@ -9,10 +7,13 @@ import {
   ExternalLink,
   ChevronRight,
   CheckCircle2,
+  Clock,
+  ListOrdered,
 } from 'lucide-react'
 import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
 
-import { submitReview } from '@/app/dashboard/review/actions'
+import { submitReview, snoozeReview } from '@/app/dashboard/review/actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,8 +31,10 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
   const [isPending, startTransition] = useTransition()
   const [completedCount, setCompletedCount] = useState(0)
   const [isFlipping, setIsFlipping] = useState(false)
+  const [showQueue, setShowQueue] = useState(false)
 
   const current = reviews[currentIndex]
+  const remaining = reviews.length - currentIndex
 
   function handleRate(rating: number) {
     if (!current) return
@@ -47,6 +50,29 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
           setCurrentIndex(prev => prev + 1)
         } else {
           setCurrentIndex(reviews.length) // triggers "all done" state
+        }
+      }, FLIP_ANIMATION_MS)
+    })
+  }
+
+  function handleSnooze(hours: number) {
+    if (!current) return
+
+    startTransition(async () => {
+      const result = await snoozeReview(current.id, hours)
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      setIsFlipping(true)
+      setTimeout(() => {
+        setRevealed(false)
+        setIsFlipping(false)
+        toast.success(`Snoozed for ${hours === 1 ? '1 hour' : `${hours} hours`}`)
+        if (currentIndex < reviews.length - 1) {
+          setCurrentIndex(prev => prev + 1)
+        } else {
+          setCurrentIndex(reviews.length)
         }
       }, FLIP_ANIMATION_MS)
     })
@@ -101,6 +127,45 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
           {currentIndex + 1} / {reviews.length}
         </span>
       </div>
+
+      {/* Review Stats Bar */}
+      <div className="flex items-center justify-between mb-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+            {completedCount} done
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {remaining} remaining
+          </span>
+        </div>
+        <button
+          onClick={() => setShowQueue(!showQueue)}
+          className="flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          <ListOrdered className="h-3 w-3" />
+          {showQueue ? 'Hide' : 'Show'} queue
+        </button>
+      </div>
+
+      {/* Queue Preview (#75) */}
+      {showQueue && remaining > 1 && (
+        <div className="mb-4 rounded-xl bg-muted/30 border border-border/30 p-3 space-y-1.5 animate-nexus-fade-in">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Upcoming cards:</p>
+          {reviews.slice(currentIndex + 1, currentIndex + 4).map((r, i) => (
+            <div key={r.id} className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground/60 w-4">{i + 2}.</span>
+              <span className="truncate">{r.node.title}</span>
+            </div>
+          ))}
+          {remaining > 4 && (
+            <p className="text-xs text-muted-foreground/50 pl-6">
+              +{remaining - 4} more
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Flashcard */}
       <Card className={`border-border/50 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/10 overflow-hidden transition-all duration-300 ${isFlipping ? 'scale-95 opacity-50' : 'scale-100 opacity-100'}`}>
@@ -174,8 +239,29 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
         </CardContent>
       </Card>
 
-      {/* Skip button */}
-      <div className="mt-4 flex justify-center">
+      {/* Action buttons: Skip + Snooze */}
+      <div className="mt-4 flex items-center justify-center gap-2">
+        {/* Snooze Option (#75) */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-muted-foreground gap-1"
+          onClick={() => handleSnooze(1)}
+          disabled={isPending}
+        >
+          <Clock className="h-3 w-3" />
+          Snooze 1h
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-muted-foreground gap-1"
+          onClick={() => handleSnooze(24)}
+          disabled={isPending}
+        >
+          <Clock className="h-3 w-3" />
+          Snooze 1d
+        </Button>
         <Button
           variant="ghost"
           size="sm"

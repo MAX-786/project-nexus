@@ -299,3 +299,42 @@
 .dark .react-flow__minimap {
   background-color: oklch(0.17 0.015 270);
 }
+
+/* ================================================================== */
+/*  Accessibility Improvements — Issue #78                             */
+/* ================================================================== */
+
+/* Visible focus indicators for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid oklch(0.637 0.237 275);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .react-flow__edge.animated path {
+    animation: none !important;
+  }
+}
+
+/* High contrast mode improvements */
+@media (prefers-contrast: high) {
+  :root {
+    --border: oklch(0.5 0 0);
+  }
+
+  .dark {
+    --border: oklch(0.6 0 0);
+  }
+}
+}

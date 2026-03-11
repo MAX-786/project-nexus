@@ -511,6 +511,25 @@ function KnowledgeGraphInner({
         )
       })()}
 
+      {/* Graph Legend */}
+      <div className="absolute bottom-4 left-4 z-10 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-4 py-3 shadow-lg">
+        <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">Legend</p>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-0.5 bg-primary/40" style={{ background: 'linear-gradient(90deg, oklch(0.637 0.237 275 / 40%), oklch(0.7 0.2 310 / 40%))' }} />
+            <span className="text-[10px] text-muted-foreground">AI connection</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-0.5 border-t-2 border-dashed border-emerald-500/50" />
+            <span className="text-[10px] text-muted-foreground">Manual link</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-primary/60" />
+            <span className="text-[10px] text-muted-foreground">Knowledge node</span>
+          </div>
+        </div>
+      </div>
+
       <ReactFlow
         nodes={visibleNodes}
         edges={visibleEdges}

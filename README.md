@@ -9,6 +9,8 @@ Project Nexus is an open-source, **Privacy-First (BYOK)** knowledge management s
 *   **⚡ Intelligent Capture**: A browser extension that scrapes articles and YouTube transcripts with a single click.
 *   **🧠 AI-Powered Insights**: Automatic summarization and entity extraction (people, tools, concepts) using your preferred LLM.
 *   **🕸️ Knowledge Graph**: A dynamic, 2D visual canvas (React Flow) that automatically links related nodes using vector embeddings.
+*   **🔖 Bookmarks & Highlights**: Star important nodes, add color-coded text highlights, and assign custom tags.
+*   **⚡ Search & Shortcuts**: Filter by date range, sort order, and use keyboard shortcuts (`1-5`) to navigate rapidly.
 *   **📅 Spaced Repetition**: A gamified review system (SuperMemo-2) to ensure long-term retention of your captured knowledge.
 *   **🤖 Always-On Memory Agent**: Automatic background consolidation of your captured knowledge into overarching themes, queryable via AI.
 *   **🗂️ Custom Collections & Bulk Ops**: Organize your captured nodes into specific collections to easily manage and curate your knowledge graph.

@@ -22,11 +22,14 @@ interface ReviewCardsProps {
   reviews: ReviewWithNode[]
 }
 
+const FLIP_ANIMATION_MS = 300
+
 export default function ReviewCards({ reviews }: ReviewCardsProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [revealed, setRevealed] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [completedCount, setCompletedCount] = useState(0)
+  const [isFlipping, setIsFlipping] = useState(false)
 
   const current = reviews[currentIndex]
 
@@ -35,13 +38,17 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
 
     startTransition(async () => {
       await submitReview(current.id, rating)
-      setRevealed(false)
-      setCompletedCount(prev => prev + 1)
-      if (currentIndex < reviews.length - 1) {
-        setCurrentIndex(prev => prev + 1)
-      } else {
-        setCurrentIndex(reviews.length) // triggers "all done" state
-      }
+      setIsFlipping(true)
+      setTimeout(() => {
+        setRevealed(false)
+        setIsFlipping(false)
+        setCompletedCount(prev => prev + 1)
+        if (currentIndex < reviews.length - 1) {
+          setCurrentIndex(prev => prev + 1)
+        } else {
+          setCurrentIndex(reviews.length) // triggers "all done" state
+        }
+      }, FLIP_ANIMATION_MS)
     })
   }
 
@@ -49,13 +56,18 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
   if (!current) {
     return (
       <div className="text-center animate-nexus-fade-in">
-        <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4 mx-auto">
-          <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+        <div className="h-20 w-20 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-5 mx-auto">
+          <CheckCircle2 className="h-10 w-10 text-emerald-500" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">Session Complete!</h3>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          You reviewed {completedCount} {completedCount === 1 ? 'card' : 'cards'}. Nice work!
+        <h3 className="text-xl font-semibold mb-2">🎉 Session Complete!</h3>
+        <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
+          You reviewed <span className="font-semibold text-foreground">{completedCount}</span> {completedCount === 1 ? 'card' : 'cards'}. Great work keeping your knowledge fresh!
         </p>
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <Badge variant="outline" className="gap-1 text-xs border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
+            <CheckCircle2 className="h-3 w-3" /> All caught up
+          </Badge>
+        </div>
       </div>
     )
   }
@@ -91,7 +103,7 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
       </div>
 
       {/* Flashcard */}
-      <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/10 overflow-hidden">
+      <Card className={`border-border/50 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/10 overflow-hidden transition-all duration-300 ${isFlipping ? 'scale-95 opacity-50' : 'scale-100 opacity-100'}`}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-4">
             <CardTitle className="text-lg leading-snug">
@@ -169,10 +181,14 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
           size="sm"
           className="text-xs text-muted-foreground gap-1"
           onClick={() => {
-            setRevealed(false)
-            if (currentIndex < reviews.length - 1) {
-              setCurrentIndex(prev => prev + 1)
-            }
+            setIsFlipping(true)
+            setTimeout(() => {
+              setRevealed(false)
+              setIsFlipping(false)
+              if (currentIndex < reviews.length - 1) {
+                setCurrentIndex(prev => prev + 1)
+              }
+            }, FLIP_ANIMATION_MS)
           }}
         >
           Skip <ChevronRight className="h-3 w-3" />

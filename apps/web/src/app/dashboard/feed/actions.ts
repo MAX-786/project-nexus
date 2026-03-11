@@ -211,3 +211,205 @@ export async function removeNodesFromCollection(nodeIds: string[], collectionId:
   return { success: true }
 }
 
+export async function toggleBookmark(nodeId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  // Get current state
+  const { data: node, error: fetchError } = await supabase
+    .from('nodes')
+    .select('is_bookmarked')
+    .eq('id', nodeId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (fetchError || !node) return { error: 'Node not found' }
+
+  const newState = !node.is_bookmarked
+  const { error } = await supabase
+    .from('nodes')
+    .update({ is_bookmarked: newState })
+    .eq('id', nodeId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/feed')
+  revalidatePath('/dashboard/graph')
+  return { success: true, is_bookmarked: newState }
+}
+
+// ---- Tag Actions ----
+
+export async function getTags() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data, error } = await supabase
+    .from('tags')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('name')
+
+  if (error) return { error: error.message }
+  return { data }
+}
+
+export async function createTag(name: string, color?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data, error } = await supabase
+    .from('tags')
+    .insert({ name: name.trim(), color: color || '#6366f1', user_id: user.id })
+    .select('*')
+    .single()
+
+  if (error) {
+    if (error.code === '23505') return { error: 'Tag already exists' }
+    return { error: error.message }
+  }
+  return { data }
+}
+
+export async function deleteTag(tagId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('tags')
+    .delete()
+    .eq('id', tagId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard/feed')
+  return { success: true }
+}
+
+export async function addTagToNodes(nodeIds: string[], tagId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const rows = nodeIds.map(nodeId => ({ node_id: nodeId, tag_id: tagId }))
+  const { error } = await supabase
+    .from('node_tags')
+    .upsert(rows, { onConflict: 'node_id,tag_id' })
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard/feed')
+  return { success: true }
+}
+
+export async function removeTagFromNode(nodeId: string, tagId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('node_tags')
+    .delete()
+    .eq('node_id', nodeId)
+    .eq('tag_id', tagId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard/feed')
+  return { success: true }
+}
+
+export async function getNodeTags() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // Get all node-tag mappings for user's nodes via inner join
+  const { data, error } = await supabase
+    .from('node_tags')
+    .select('node_id, tag_id, nodes!inner(user_id)')
+    .eq('nodes.user_id', user.id)
+
+  if (error) return { error: error.message }
+  // Strip the joined nodes field from the response
+  const mapped = (data ?? []).map(({ node_id, tag_id }) => ({ node_id, tag_id }))
+  return { data: mapped }
+}
+
+// ---- Highlight Actions ----
+
+export async function getHighlights(nodeId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data, error } = await supabase
+    .from('highlights')
+    .select('*')
+    .eq('node_id', nodeId)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (error) return { error: error.message }
+  return { data }
+}
+
+export async function createHighlight(nodeId: string, text: string, note?: string, color?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  if (!text.trim()) return { error: 'Highlight text is required' }
+
+  const { data, error } = await supabase
+    .from('highlights')
+    .insert({
+      user_id: user.id,
+      node_id: nodeId,
+      text: text.trim(),
+      note: note?.trim() || null,
+      color: color || '#fbbf24',
+    })
+    .select('*')
+    .single()
+
+  if (error) return { error: error.message }
+  return { data }
+}
+
+export async function deleteHighlight(highlightId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('highlights')
+    .delete()
+    .eq('id', highlightId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function updateHighlightNote(highlightId: string, note: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('highlights')
+    .update({ note: note.trim() || null })
+    .eq('id', highlightId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}

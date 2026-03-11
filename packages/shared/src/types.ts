@@ -11,6 +11,7 @@ export interface DBNode {
   summary: string
   raw_text?: string | null  // optional, loaded lazily
   created_at: string
+  is_bookmarked?: boolean
 }
 
 export interface DBEntity {
@@ -57,6 +58,30 @@ export interface DBNodeCollection {
   created_at: string
 }
 
+export interface DBTag {
+  id: string
+  user_id: string
+  name: string
+  color: string
+  created_at: string
+}
+
+export interface DBNodeTag {
+  node_id: string
+  tag_id: string
+  created_at: string
+}
+
+export interface DBHighlight {
+  id: string
+  user_id: string
+  node_id: string
+  text: string
+  note: string | null
+  color: string
+  created_at: string
+}
+
 export interface DBConsolidation {
   id: string
   user_id: string
@@ -71,4 +96,11 @@ export interface DBConsolidation {
 export interface AuthUser {
   id: string
   email: string
+}
+
+export interface DBUserSettings {
+  user_id: string
+  shortcuts_enabled: boolean
+  custom_shortcuts: Record<string, string>
+  updated_at: string
 }

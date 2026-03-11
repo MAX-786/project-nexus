@@ -6,7 +6,7 @@ import { useState, useRef, useTransition, useCallback, useEffect } from 'react'
 import '@xyflow/react/dist/style.css'
 
 import { toast } from 'sonner'
-import { deleteNode, getNodeDetail, batchDeleteNodes } from '@/app/dashboard/feed/actions'
+import { deleteNode, getNodeDetail, batchDeleteNodes, toggleBookmark } from '@/app/dashboard/feed/actions'
 import { updateNode } from '@/app/dashboard/graph/actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,10 @@ import {
   Share,
   Copy,
   Filter,
+  Star,
+  Tags,
+  ArrowUpDown,
+  Calendar,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -69,13 +73,15 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import type { DBNode, DBEntity, DBCollection } from '@/lib/types'
+import type { DBNode, DBEntity, DBCollection, DBTag } from '@/lib/types'
 import { useNodesStore, useFilteredNodes } from '@/stores/nodes-store'
 import { useUIStore } from '@/stores/ui-store'
 import { createClient } from '@/utils/supabase/client'
 
 import { CollectionTaggerDialog } from './collection-tagger-dialog'
 import { FeedEmptyState } from './empty-states'
+import { HighlightsPanel } from './highlights-panel'
+import { TagManager, NodeTagBadges } from './tag-manager'
 
 // ---- Helpers ----
 
@@ -136,6 +142,19 @@ const entityTypeColors: Record<string, string> = {
 }
 function getEntityColor(type: string): string {
   return entityTypeColors[type.toLowerCase()] ?? 'bg-primary/10 text-primary border-primary/20'
+}
+
+function getEmptyFilterMessage(
+  searchQuery: string,
+  showBookmarksOnly: boolean,
+  dateFilter: string,
+  selectedTagId: string | null,
+): string {
+  if (searchQuery) return `No results for "${searchQuery}"`
+  if (showBookmarksOnly) return 'No bookmarked memories.'
+  if (dateFilter !== 'all') return `No memories in the last ${dateFilter}.`
+  if (selectedTagId) return 'No memories with this tag.'
+  return 'No memories match your filters.'
 }
 
 // ---- Export helpers ----
@@ -238,6 +257,20 @@ export default function NodeFeed() {
   const [nodeCollections, setNodeCollections] = useState<{node_id: string, collection_id: string}[]>([])
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
 
+  // Tags state
+  const [tags, setTags] = useState<DBTag[]>([])
+  const [nodeTags, setNodeTags] = useState<{node_id: string, tag_id: string}[]>([])
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
+
+  // Bookmark filter state
+  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false)
+  const toggleBookmarkInStore = useNodesStore((s) => s.toggleBookmark)
+
+  // Sort & date filter state
+  type SortOption = 'newest' | 'oldest' | 'most-connections' | 'most-entities'
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d'>('all')
+
   // Fetch collections data
   const loadCollectionsData = useCallback(async () => {
     const supabase = createClient()
@@ -252,6 +285,21 @@ export default function NodeFeed() {
   useEffect(() => {
     loadCollectionsData()
   }, [loadCollectionsData])
+
+  // Fetch tags data
+  const loadTagsData = useCallback(async () => {
+    const supabase = createClient()
+    const [{ data: t }, { data: nt }] = await Promise.all([
+      supabase.from('tags').select('*').order('name'),
+      supabase.from('node_tags').select('node_id, tag_id')
+    ])
+    if (t) setTags(t)
+    if (nt) setNodeTags(nt)
+  }, [])
+
+  useEffect(() => {
+    loadTagsData()
+  }, [loadTagsData])
 
   // Lazy-loaded raw_text for the detail sheet
   const [rawText, setRawText] = useState<string | null>(null)
@@ -391,16 +439,42 @@ export default function NodeFeed() {
 
 
 
-  // Apply collection filter
-  let displayNodes = filteredNodes
-  if (selectedCollectionId) {
-    const nodeIdsInCollection = new Set(
-      nodeCollections
-        .filter(nc => nc.collection_id === selectedCollectionId)
-        .map(nc => nc.node_id)
-    )
-    displayNodes = displayNodes.filter(n => nodeIdsInCollection.has(n.id))
-  }
+  // Apply filters (collections, tags, bookmarks, date) and sort
+  const displayNodes = (() => {
+    let result = filteredNodes
+    if (showBookmarksOnly) result = result.filter(n => n.is_bookmarked)
+    if (selectedTagId) {
+      const taggedNodeIds = new Set(nodeTags.filter(nt => nt.tag_id === selectedTagId).map(nt => nt.node_id))
+      result = result.filter(n => taggedNodeIds.has(n.id))
+    }
+    if (selectedCollectionId) {
+      const collectionNodeIds = new Set(nodeCollections.filter(nc => nc.collection_id === selectedCollectionId).map(nc => nc.node_id))
+      result = result.filter(n => collectionNodeIds.has(n.id))
+    }
+    // Date filter
+    if (dateFilter !== 'all') {
+      const days = dateFilter === '7d' ? 7 : dateFilter === '30d' ? 30 : 90
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - days)
+      result = result.filter(n => new Date(n.created_at) >= cutoff)
+    }
+    // Sort (result is already a filtered copy, safe to sort in-place)
+    switch (sortBy) {
+      case 'oldest':
+        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        break
+      case 'most-connections':
+        result.sort((a, b) => connectionCount(b.id) - connectionCount(a.id))
+        break
+      case 'most-entities':
+        result.sort((a, b) => nodeEntities(b.id).length - nodeEntities(a.id).length)
+        break
+      default: // newest
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        break
+    }
+    return result
+  })()
 
   // Virtualized list
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -432,9 +506,21 @@ export default function NodeFeed() {
               {nodes.length} {nodes.length === 1 ? 'memory' : 'memories'} captured
               {searchQuery && ` · ${filteredNodes.length} matching search`}
               {selectedCollection && ` · filtered by ${selectedCollection.name}`}
+              {showBookmarksOnly && ' · bookmarks only'}
+              {dateFilter !== 'all' && ` · last ${dateFilter}`}
+              {displayNodes.length !== nodes.length && !searchQuery && ` · ${displayNodes.length} shown`}
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant={showBookmarksOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
+              className="gap-1.5"
+            >
+              <Star className={`h-3.5 w-3.5 ${showBookmarksOnly ? 'fill-current' : ''}`} />
+              <span className="hidden sm:inline">Bookmarks</span>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
@@ -463,6 +549,66 @@ export default function NodeFeed() {
                     <span className="truncate">{c.name}</span>
                   </DropdownMenuItem>
                 ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {tags.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant={selectedTagId ? "default" : "outline"} size="sm" className="gap-1.5">
+                    <Tags className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">
+                      {selectedTagId ? tags.find(t => t.id === selectedTagId)?.name : 'Tags'}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setSelectedTagId(null)}>
+                    All Tags
+                  </DropdownMenuItem>
+                  {tags.map(tag => (
+                    <DropdownMenuItem key={tag.id} onClick={() => setSelectedTagId(tag.id)}>
+                      <span className="h-2 w-2 rounded-full mr-2" style={{ backgroundColor: tag.color }} />
+                      {tag.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Date filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant={dateFilter !== 'all' ? "default" : "outline"} size="sm" className="gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">
+                    {dateFilter === 'all' ? 'All Time' : dateFilter === '7d' ? 'Last 7d' : dateFilter === '30d' ? 'Last 30d' : 'Last 90d'}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setDateFilter('all')}>All Time</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDateFilter('7d')}>Last 7 Days</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDateFilter('30d')}>Last 30 Days</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDateFilter('90d')}>Last 90 Days</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Sort */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">
+                    {sortBy === 'newest' ? 'Newest' : sortBy === 'oldest' ? 'Oldest' : sortBy === 'most-connections' ? 'Connections' : 'Entities'}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSortBy('newest')}>Newest First</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('oldest')}>Oldest First</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('most-connections')}>Most Connections</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortBy('most-entities')}>Most Entities</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -496,7 +642,7 @@ export default function NodeFeed() {
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
             <Search className="h-8 w-8 text-muted-foreground mb-3" />
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? `No results for "${searchQuery}"` : 'No memories in this collection.'}
+              {getEmptyFilterMessage(searchQuery, showBookmarksOnly, dateFilter, selectedTagId)}
             </p>
           </div>
         ) : (
@@ -585,6 +731,17 @@ export default function NodeFeed() {
                               {formatDate(node.created_at)}
                             </TooltipContent>
                           </Tooltip>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleBookmarkInStore(node.id)
+                              toggleBookmark(node.id)
+                            }}
+                            className="p-1 rounded-md hover:bg-muted transition-colors"
+                            aria-label={node.is_bookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                          >
+                            <Star className={`h-3.5 w-3.5 ${node.is_bookmarked ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground hover:text-amber-400'} transition-colors`} />
+                          </button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -647,6 +804,7 @@ export default function NodeFeed() {
                           </span>
                         )}
                       </div>
+                      <NodeTagBadges nodeId={node.id} tags={tags} nodeTags={nodeTags} />
                     </CardContent>
                   </Card>
                 </div>
@@ -864,6 +1022,10 @@ export default function NodeFeed() {
                     <p className="text-xs text-muted-foreground">No entities extracted for this node.</p>
                   )}
                 </section>
+
+                <Separator className="bg-border/30" />
+
+                {selectedNode && <HighlightsPanel nodeId={selectedNode.id} />}
 
                 <Separator className="bg-border/30" />
 

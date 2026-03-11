@@ -28,6 +28,9 @@
       ],
       "@nexus/shared": [
         "../../packages/shared/src"
+      ],
+      "@nexus/shared/*": [
+        "../../packages/shared/src/*"
       ]
     }
   },

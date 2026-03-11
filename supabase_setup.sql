@@ -28,6 +28,32 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- 1.5 User Settings table
+CREATE TABLE public.user_settings (
+  user_id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  shortcuts_enabled BOOLEAN NOT NULL DEFAULT true,
+  custom_shortcuts JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own settings" ON public.user_settings FOR ALL USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.handle_new_user_settings()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_settings (user_id)
+  VALUES (new.id)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created_settings ON auth.users;
+CREATE TRIGGER on_auth_user_created_settings
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_settings();
+
 -- 2. Nodes table (Content)
 CREATE TABLE public.nodes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -37,7 +63,8 @@ CREATE TABLE public.nodes (
   summary TEXT,
   raw_text TEXT,
   embedding vector(1536),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  is_bookmarked BOOLEAN NOT NULL DEFAULT false
 );
 
 ALTER TABLE public.nodes ENABLE ROW LEVEL SECURITY;
@@ -140,7 +167,51 @@ ALTER TABLE public.node_collections ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage own node_collections" ON public.node_collections FOR ALL
   USING (EXISTS (SELECT 1 FROM public.nodes WHERE id = node_id AND user_id = auth.uid()));
 
--- 8. Consolidations table (Memory Consolidation)
+-- 8. Tags table (user-created categories)
+CREATE TABLE public.tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT '#6366f1',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, name)
+);
+
+ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own tags" ON public.tags FOR ALL USING (auth.uid() = user_id);
+
+-- 9. Node-Tags junction table
+CREATE TABLE public.node_tags (
+  node_id UUID NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
+  tag_id UUID NOT NULL REFERENCES public.tags(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (node_id, tag_id)
+);
+
+ALTER TABLE public.node_tags ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own node_tags" ON public.node_tags 
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.nodes WHERE id = node_id AND user_id = auth.uid())
+  );
+
+-- 10. Highlights table for saving text passages with notes
+CREATE TABLE public.highlights (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  node_id UUID NOT NULL REFERENCES public.nodes(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  note TEXT,
+  color TEXT NOT NULL DEFAULT '#fbbf24',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.highlights ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own highlights" ON public.highlights FOR ALL USING (auth.uid() = user_id);
+
+CREATE INDEX idx_highlights_node ON public.highlights (node_id);
+CREATE INDEX idx_highlights_user ON public.highlights (user_id);
+
+-- 11. Consolidations table (Memory Consolidation)
 -- Stores cross-cutting insights discovered across captured nodes.
 CREATE TABLE public.consolidations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

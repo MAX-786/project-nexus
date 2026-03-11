@@ -21,11 +21,6 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Nexus",
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
 };
 
 export default function RootLayout({

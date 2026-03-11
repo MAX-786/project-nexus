@@ -82,18 +82,22 @@ export async function getRelatedNodes(
         sharedCounts.set(e.node_id, (sharedCounts.get(e.node_id) ?? 0) + 1)
       }
 
-      // Only include nodes with 2+ shared entities
-      for (const [relatedNodeId, count] of sharedCounts) {
-        if (count >= 2 && !related.has(relatedNodeId)) {
-          // Fetch node details
-          const { data: node } = await supabase
-            .from('nodes')
-            .select('id, title, summary, url')
-            .eq('id', relatedNodeId)
-            .single()
+      // Collect node IDs with 2+ shared entities
+      const qualifiedNodeIds = Array.from(sharedCounts.entries())
+        .filter(([id, count]) => count >= 2 && !related.has(id))
+        .map(([id]) => id)
 
-          if (node) {
-            related.set(relatedNodeId, {
+      if (qualifiedNodeIds.length > 0) {
+        // Batch fetch all node details
+        const { data: batchNodes } = await supabase
+          .from('nodes')
+          .select('id, title, summary, url')
+          .in('id', qualifiedNodeIds)
+
+        if (batchNodes) {
+          for (const node of batchNodes) {
+            const count = sharedCounts.get(node.id) ?? 0
+            related.set(node.id, {
               id: node.id,
               title: node.title,
               summary: node.summary ?? '',
@@ -125,16 +129,20 @@ export async function getRelatedNodes(
       .eq('user_id', user.id)
 
     if (coMembers) {
-      for (const member of coMembers) {
-        if (!related.has(member.node_id)) {
-          const { data: node } = await supabase
-            .from('nodes')
-            .select('id, title, summary, url')
-            .eq('id', member.node_id)
-            .single()
+      const newMemberIds = coMembers
+        .map((m: { node_id: string }) => m.node_id)
+        .filter((id: string) => !related.has(id))
+      const uniqueMemberIds = [...new Set(newMemberIds)]
 
-          if (node) {
-            related.set(member.node_id, {
+      if (uniqueMemberIds.length > 0) {
+        const { data: batchNodes } = await supabase
+          .from('nodes')
+          .select('id, title, summary, url')
+          .in('id', uniqueMemberIds)
+
+        if (batchNodes) {
+          for (const node of batchNodes) {
+            related.set(node.id, {
               id: node.id,
               title: node.title,
               summary: node.summary ?? '',

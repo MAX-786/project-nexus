@@ -110,9 +110,9 @@ export default function DigestClient({
           return
         }
 
-        // Add to local state
+        // Add to local state with server-generated ID
         const newDigest: DBDailyDigest = {
-          id: crypto.randomUUID(),
+          id: (saveResult as { id: string }).id,
           user_id: '',
           content: parsed.content,
           node_ids: recentNodes.map((n) => n.id),

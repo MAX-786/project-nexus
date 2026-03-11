@@ -56,8 +56,10 @@ function TrendIcon({ trend }: { trend: 'up' | 'down' | 'flat' }) {
 }
 
 function formatShortDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  // Parse as UTC to avoid timezone issues
+  const parts = dateStr.split('-')
+  const d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])))
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
 
 /* ------------------------------------------------------------------ */

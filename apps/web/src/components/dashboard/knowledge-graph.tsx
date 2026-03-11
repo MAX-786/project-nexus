@@ -546,7 +546,7 @@ function KnowledgeGraphInner({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                onClick={() => { const rf = document.querySelector('.react-flow'); if (rf) { fitView({ duration: FIT_VIEW_DURATION, padding: FIT_VIEW_PADDING }) } }}
+                onClick={() => fitView({ duration: FIT_VIEW_DURATION, padding: FIT_VIEW_PADDING })}
                 aria-label="Zoom to fit"
               >
                 <Maximize className="h-3.5 w-3.5" />

@@ -50,4 +50,4 @@ Clicking "Delete Account" will permanently delete:
 This action cannot be undone.
 :::
 
-The deletion sequence follows dependency order: `reviews → edges → entities → nodes` to respect foreign key constraints, then deletes the auth user and signs out.
+The deletion sequence follows dependency order: `reviews → highlights → edges → entities → nodes → consolidations → tags → collections → user_settings → users` to respect foreign key constraints and ensure a clean wipe, then signs out the user.

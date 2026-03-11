@@ -17,3 +17,6 @@ build/
 # Docusaurus
 apps/docs/.docusaurus
 apps/docs/build
+
+# Supabase
+supabase/snippets

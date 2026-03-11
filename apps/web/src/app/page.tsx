@@ -13,6 +13,12 @@ import {
   Star,
   Shield,
   Code2,
+  Highlighter,
+  Tags,
+  Bookmark,
+  Keyboard,
+  Search,
+  BarChart3,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -235,6 +241,39 @@ export default async function LandingPage() {
             description="Flashcard-style reviews using the SuperMemo-2 algorithm ensure you actually remember what you save."
             step="3"
           />
+        </div>
+      </section>
+
+      {/* More Features Grid */}
+      <section className="max-w-6xl mx-auto px-6 py-16">
+        <div className="text-center mb-12">
+          <Badge variant="outline" className="mb-4 gap-1.5 border-primary/30 bg-primary/5 text-primary text-xs">
+            <Zap className="h-3 w-3" /> Features
+          </Badge>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Built for power users</h2>
+          <p className="text-muted-foreground max-w-lg mx-auto text-base">
+            Every feature designed to help you retain and connect knowledge.
+          </p>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[
+            { icon: <Highlighter className="h-5 w-5" />, title: 'Highlights & Annotations', desc: 'Save key passages with color-coded highlights and personal notes.' },
+            { icon: <Tags className="h-5 w-5" />, title: 'Custom Tags', desc: 'Create your own tags to organize knowledge your way.' },
+            { icon: <Bookmark className="h-5 w-5" />, title: 'Bookmarks', desc: 'Pin important captures for quick access anytime.' },
+            { icon: <Keyboard className="h-5 w-5" />, title: 'Keyboard Shortcuts', desc: 'Navigate your knowledge base at lightning speed.' },
+            { icon: <Search className="h-5 w-5" />, title: 'Advanced Search & Filters', desc: 'Search by date, tags, entities — find anything instantly.' },
+            { icon: <BarChart3 className="h-5 w-5" />, title: 'Analytics & Insights', desc: 'Track your learning growth with visual analytics.' },
+          ].map((feature) => (
+            <div key={feature.title} className="group flex items-start gap-4 rounded-xl border border-border/40 bg-card/30 p-5 hover:border-primary/30 hover:bg-card/60 transition-all duration-300">
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/15 transition-colors">
+                {feature.icon}
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold mb-1">{feature.title}</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{feature.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import CommandSearch from '@/components/dashboard/command-search'
+import { KeyboardShortcutsHint, KeyboardShortcutsProvider } from '@/components/dashboard/keyboard-shortcuts-provider'
 import DashboardStats from '@/components/dashboard/dashboard-stats'
 import NavTab from '@/components/dashboard/nav-tab'
 import OnboardingDialog from '@/components/dashboard/onboarding-dialog'
@@ -137,6 +138,7 @@ export default async function DashboardLayout({
 
               <div className="hidden md:flex items-center gap-3">
                 <ThemeToggle />
+                <KeyboardShortcutsHint />
 
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -188,6 +190,7 @@ export default async function DashboardLayout({
         {/* Main Content */}
         <main className="flex-1 overflow-hidden">{children}</main>
         <OnboardingDialog />
+        <KeyboardShortcutsProvider />
       </div>
     </AuthProvider>
   )

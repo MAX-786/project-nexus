@@ -51,7 +51,8 @@ export function HighlightsPanel({ nodeId }: HighlightsPanelProps) {
     if (result.error) {
       toast.error(result.error)
     } else if (result.data) {
-      setHighlights(prev => [result.data!, ...prev])
+      const saved = result.data
+      setHighlights(prev => [saved, ...prev])
       setNewText('')
       setNewNote('')
       setShowForm(false)

@@ -144,6 +144,19 @@ function getEntityColor(type: string): string {
   return entityTypeColors[type.toLowerCase()] ?? 'bg-primary/10 text-primary border-primary/20'
 }
 
+function getEmptyFilterMessage(
+  searchQuery: string,
+  showBookmarksOnly: boolean,
+  dateFilter: string,
+  selectedTagId: string | null,
+): string {
+  if (searchQuery) return `No results for "${searchQuery}"`
+  if (showBookmarksOnly) return 'No bookmarked memories.'
+  if (dateFilter !== 'all') return `No memories in the last ${dateFilter}.`
+  if (selectedTagId) return 'No memories with this tag.'
+  return 'No memories match your filters.'
+}
+
 // ---- Export helpers ----
 
 const MAX_EXPORT_RAW_TEXT_LENGTH = 1000
@@ -445,23 +458,22 @@ export default function NodeFeed() {
       cutoff.setDate(cutoff.getDate() - days)
       result = result.filter(n => new Date(n.created_at) >= cutoff)
     }
-    // Sort
-    const sorted = [...result]
+    // Sort (result is already a filtered copy, safe to sort in-place)
     switch (sortBy) {
       case 'oldest':
-        sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         break
       case 'most-connections':
-        sorted.sort((a, b) => connectionCount(b.id) - connectionCount(a.id))
+        result.sort((a, b) => connectionCount(b.id) - connectionCount(a.id))
         break
       case 'most-entities':
-        sorted.sort((a, b) => nodeEntities(b.id).length - nodeEntities(a.id).length)
+        result.sort((a, b) => nodeEntities(b.id).length - nodeEntities(a.id).length)
         break
       default: // newest
-        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         break
     }
-    return sorted
+    return result
   })()
 
   // Virtualized list
@@ -630,7 +642,7 @@ export default function NodeFeed() {
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
             <Search className="h-8 w-8 text-muted-foreground mb-3" />
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? `No results for "${searchQuery}"` : showBookmarksOnly ? 'No bookmarked memories.' : dateFilter !== 'all' ? `No memories in the last ${dateFilter}.` : selectedTagId ? 'No memories with this tag.' : 'No memories match your filters.'}
+              {getEmptyFilterMessage(searchQuery, showBookmarksOnly, dateFilter, selectedTagId)}
             </p>
           </div>
         ) : (

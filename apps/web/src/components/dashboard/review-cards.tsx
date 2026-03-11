@@ -22,6 +22,8 @@ interface ReviewCardsProps {
   reviews: ReviewWithNode[]
 }
 
+const FLIP_ANIMATION_MS = 300
+
 export default function ReviewCards({ reviews }: ReviewCardsProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [revealed, setRevealed] = useState(false)
@@ -46,7 +48,7 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
         } else {
           setCurrentIndex(reviews.length) // triggers "all done" state
         }
-      }, 300)
+      }, FLIP_ANIMATION_MS)
     })
   }
 
@@ -186,7 +188,7 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
               if (currentIndex < reviews.length - 1) {
                 setCurrentIndex(prev => prev + 1)
               }
-            }, 200)
+            }, FLIP_ANIMATION_MS)
           }}
         >
           Skip <ChevronRight className="h-3 w-3" />

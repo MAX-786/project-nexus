@@ -2,6 +2,7 @@
 
 import { Brain, Tag, Network, GraduationCap, Star, TrendingUp } from 'lucide-react'
 
+import { cn } from '@/lib/utils'
 import { useNodesStore } from '@/stores/nodes-store'
 
 interface DashboardStatsProps {
@@ -98,7 +99,7 @@ export default function DashboardStats({ dueCount }: DashboardStatsProps) {
 
   return (
     <div className="border-b border-border/50 bg-background/60 backdrop-blur-sm">
-      <div className={`grid gap-3 px-6 py-3 stagger-children ${stats.length > 4 ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4'}`}>
+      <div className={cn('grid gap-3 px-6 py-3 stagger-children', stats.length > 4 ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4')}>
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}

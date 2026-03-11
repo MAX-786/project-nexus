@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { Keyboard } from 'lucide-react'
 
 interface ShortcutItem {
-  key: string
+  id: string
   label: string
   description: string
   category: string
@@ -55,7 +55,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, shortcuts }: Keybo
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">{cat.title}</h4>
                 <div className="space-y-1.5">
                   {catShortcuts.map(shortcut => (
-                    <div key={shortcut.key} className="flex items-center justify-between py-1">
+                    <div key={shortcut.id} className="flex items-center justify-between py-1">
                       <span className="text-sm">{shortcut.description}</span>
                       <kbd className="pointer-events-none inline-flex h-6 select-none items-center gap-1 rounded border bg-muted px-2 font-mono text-xs font-medium text-muted-foreground">
                         {shortcut.label}

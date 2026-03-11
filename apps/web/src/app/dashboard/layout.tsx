@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createClient } from '@/utils/supabase/server'
+import { SettingsProvider } from '@/components/dashboard/settings-provider'
+import type { DBUserSettings } from '@nexus/shared'
 
 export default async function DashboardLayout({
   children,
@@ -45,6 +47,20 @@ export default async function DashboardLayout({
     .eq('user_id', user.id)
     .lte('next_review_date', now)
 
+  // Fetch user settings
+  const { data: settingsData } = await supabase
+    .from('user_settings')
+    .select('*')
+    .eq('user_id', user.id)
+    .single()
+
+  const settings: DBUserSettings = settingsData || {
+    user_id: user.id,
+    shortcuts_enabled: true,
+    custom_shortcuts: {},
+    updated_at: new Date().toISOString()
+  }
+
   const initials = (user.email ?? '?')
     .split('@')[0]
     .slice(0, 2)
@@ -54,9 +70,10 @@ export default async function DashboardLayout({
 
   return (
     <AuthProvider user={authUser}>
-      <div className="flex h-screen flex-col bg-background">
-        {/* Dashboard Header */}
-        <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+      <SettingsProvider initialSettings={settings}>
+        <div className="flex h-screen flex-col bg-background">
+          {/* Dashboard Header */}
+          <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
           <div className="flex h-14 items-center justify-between px-4 sm:px-6 gap-4">
             <div className="flex items-center gap-4 shrink-0">
               {/* Mobile Menu Toggle */}
@@ -187,11 +204,12 @@ export default async function DashboardLayout({
         {/* Stats Bar */}
         <DashboardStats dueCount={dueCount ?? 0} />
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-hidden">{children}</main>
-        <OnboardingDialog />
-        <KeyboardShortcutsProvider />
-      </div>
+          {/* Main Content */}
+          <main className="flex-1 overflow-hidden">{children}</main>
+          <OnboardingDialog />
+          <KeyboardShortcutsProvider />
+        </div>
+      </SettingsProvider>
     </AuthProvider>
   )
 }

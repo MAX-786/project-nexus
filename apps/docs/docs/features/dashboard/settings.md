@@ -27,6 +27,10 @@ Configure the AI provider and mode for the [Memory Agent](./memory.md).
 | **Mode** | Toggle between **Auto** and **Manual** consolidation. |
 | **Model** | Select the specific model to use (options depend on provider). |
 
+### Keyboard Shortcuts
+
+Enable or disable the comprehensive dashboard keyboard shortcuts globally. If enabled, you can customize the individual key bindings for navigation (e.g., Go to Feed, Go to Graph) and actions (e.g., Toggle Bookmark, Delete Node, J/K feed navigation) by recording new keystrokes here. These preferences are stored in the database and synced across your devices.
+
 ### Extension Authentication
 
 This section is for linking the browser extension to your dashboard session.

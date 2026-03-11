@@ -97,3 +97,10 @@ export interface AuthUser {
   id: string
   email: string
 }
+
+export interface DBUserSettings {
+  user_id: string
+  shortcuts_enabled: boolean
+  custom_shortcuts: Record<string, string>
+  updated_at: string
+}

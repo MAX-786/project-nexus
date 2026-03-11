@@ -36,7 +36,7 @@ export function KeyboardShortcutsHint() {
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p>Keyboard shortcuts <kbd className="ml-1 px-1 py-0.5 rounded border bg-muted text-[10px]">?</kbd></p>
+          <p>Keyboard shortcuts <kbd className="ml-1 px-1 py-0.5 rounded border bg-gray-200 text-[10px]">?</kbd></p>
         </TooltipContent>
       </Tooltip>
       <KeyboardShortcutsDialog

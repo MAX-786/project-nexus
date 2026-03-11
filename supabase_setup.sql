@@ -28,6 +28,32 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- 1.5 User Settings table
+CREATE TABLE public.user_settings (
+  user_id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  shortcuts_enabled BOOLEAN NOT NULL DEFAULT true,
+  custom_shortcuts JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own settings" ON public.user_settings FOR ALL USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.handle_new_user_settings()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_settings (user_id)
+  VALUES (new.id)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created_settings ON auth.users;
+CREATE TRIGGER on_auth_user_created_settings
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_settings();
+
 -- 2. Nodes table (Content)
 CREATE TABLE public.nodes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

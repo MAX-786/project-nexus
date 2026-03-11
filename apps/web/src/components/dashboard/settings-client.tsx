@@ -1,12 +1,14 @@
 'use client'
 
-import { Sun, Moon, Monitor, Trash2, Brain, Eye, EyeOff, Sparkles } from 'lucide-react'
+import { Sun, Moon, Monitor, Trash2, Brain, Eye, EyeOff, Sparkles, Keyboard } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
 import { deleteAccount } from '@/app/dashboard/settings/actions'
 import { Button } from '@/components/ui/button'
+import { useSettings } from '@/components/dashboard/settings-provider'
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import {
   Dialog,
   DialogContent,
@@ -39,6 +41,8 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
   const [showApiKey, setShowApiKey] = useState(false)
 
   const memorySettings = useMemorySettings()
+  const { settings: appSettings, updateSettings } = useSettings()
+  const { shortcuts } = useKeyboardShortcuts()
 
   const handleDeleteAccount = () => {
     startTransition(async () => {
@@ -236,6 +240,60 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
                   'Add an API key to enable Auto mode'
                 )}
               </span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Keyboard Shortcuts Section */}
+      <section className="rounded-xl border border-border bg-card p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Keyboard className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold text-foreground">Keyboard Shortcuts</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-5">
+          Enable dashboard keyboard shortcuts or customize your key bindings. 
+        </p>
+
+        <div className="space-y-5">
+          {/* Global Toggle */}
+          <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/30 p-4">
+            <div className="space-y-1">
+              <Label className="text-sm font-medium">Enable Shortcuts</Label>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                Toggle all keyboard shortcuts globally across the dashboard.
+              </p>
+            </div>
+            <Switch
+              checked={appSettings.shortcuts_enabled}
+              onCheckedChange={(checked) => updateSettings({ shortcuts_enabled: checked })}
+            />
+          </div>
+
+          {/* Bindings List */}
+          {appSettings.shortcuts_enabled && (
+            <div className="space-y-3 mt-4">
+              <Label className="text-sm font-medium">Custom Bindings</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                {shortcuts.map(shortcut => (
+                  <div key={shortcut.id} className="flex flex-col gap-1.5 p-3 rounded-lg border border-border bg-card">
+                    <Label className="text-xs font-medium">{shortcut.description}</Label>
+                    <Input
+                      className="h-8 text-xs font-mono"
+                      value={appSettings.custom_shortcuts[shortcut.id] ?? shortcut.defaultKey}
+                      onChange={(e) => {
+                         updateSettings({
+                           custom_shortcuts: {
+                             ...appSettings.custom_shortcuts,
+                             [shortcut.id]: e.target.value
+                           }
+                         })
+                      }}
+                      placeholder={shortcut.defaultKey}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

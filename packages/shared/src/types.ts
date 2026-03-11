@@ -11,6 +11,7 @@ export interface DBNode {
   summary: string
   raw_text?: string | null  // optional, loaded lazily
   created_at: string
+  is_bookmarked?: boolean
 }
 
 export interface DBEntity {

@@ -211,3 +211,35 @@ export async function removeNodesFromCollection(nodeIds: string[], collectionId:
   return { success: true }
 }
 
+export async function toggleBookmark(nodeId: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Not authenticated' }
+
+  // Get current state
+  const { data: node, error: fetchError } = await supabase
+    .from('nodes')
+    .select('is_bookmarked')
+    .eq('id', nodeId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (fetchError || !node) return { error: 'Node not found' }
+
+  const newState = !node.is_bookmarked
+  const { error } = await supabase
+    .from('nodes')
+    .update({ is_bookmarked: newState })
+    .eq('id', nodeId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/feed')
+  revalidatePath('/dashboard/graph')
+  return { success: true, is_bookmarked: newState }
+}

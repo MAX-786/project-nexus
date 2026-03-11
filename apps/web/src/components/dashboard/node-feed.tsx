@@ -6,7 +6,7 @@ import { useState, useRef, useTransition, useCallback, useEffect } from 'react'
 import '@xyflow/react/dist/style.css'
 
 import { toast } from 'sonner'
-import { deleteNode, getNodeDetail, batchDeleteNodes } from '@/app/dashboard/feed/actions'
+import { deleteNode, getNodeDetail, batchDeleteNodes, toggleBookmark } from '@/app/dashboard/feed/actions'
 import { updateNode } from '@/app/dashboard/graph/actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,7 @@ import {
   Share,
   Copy,
   Filter,
+  Star,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -238,6 +239,10 @@ export default function NodeFeed() {
   const [nodeCollections, setNodeCollections] = useState<{node_id: string, collection_id: string}[]>([])
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
 
+  // Bookmark filter state
+  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false)
+  const toggleBookmarkInStore = useNodesStore((s) => s.toggleBookmark)
+
   // Fetch collections data
   const loadCollectionsData = useCallback(async () => {
     const supabase = createClient()
@@ -401,6 +406,9 @@ export default function NodeFeed() {
     )
     displayNodes = displayNodes.filter(n => nodeIdsInCollection.has(n.id))
   }
+  if (showBookmarksOnly) {
+    displayNodes = displayNodes.filter(n => n.is_bookmarked)
+  }
 
   // Virtualized list
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -435,6 +443,15 @@ export default function NodeFeed() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant={showBookmarksOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
+              className="gap-1.5"
+            >
+              <Star className={`h-3.5 w-3.5 ${showBookmarksOnly ? 'fill-current' : ''}`} />
+              <span className="hidden sm:inline">Bookmarks</span>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
@@ -496,7 +513,7 @@ export default function NodeFeed() {
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
             <Search className="h-8 w-8 text-muted-foreground mb-3" />
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? `No results for "${searchQuery}"` : 'No memories in this collection.'}
+              {searchQuery ? `No results for "${searchQuery}"` : showBookmarksOnly ? 'No bookmarked memories.' : 'No memories in this collection.'}
             </p>
           </div>
         ) : (
@@ -585,6 +602,17 @@ export default function NodeFeed() {
                               {formatDate(node.created_at)}
                             </TooltipContent>
                           </Tooltip>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleBookmarkInStore(node.id)
+                              toggleBookmark(node.id)
+                            }}
+                            className="p-1 rounded-md hover:bg-muted transition-colors"
+                            aria-label={node.is_bookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                          >
+                            <Star className={`h-3.5 w-3.5 ${node.is_bookmarked ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground hover:text-amber-400'} transition-colors`} />
+                          </button>
                           <Button
                             variant="ghost"
                             size="icon"

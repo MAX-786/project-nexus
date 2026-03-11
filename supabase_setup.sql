@@ -37,7 +37,8 @@ CREATE TABLE public.nodes (
   summary TEXT,
   raw_text TEXT,
   embedding vector(1536),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  is_bookmarked BOOLEAN NOT NULL DEFAULT false
 );
 
 ALTER TABLE public.nodes ENABLE ROW LEVEL SECURITY;

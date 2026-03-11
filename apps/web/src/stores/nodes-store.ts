@@ -21,6 +21,9 @@ interface NodesState {
   /** Optimistically update a node's title and/or summary */
   updateNode: (nodeId: string, updates: { title?: string; summary?: string }) => void
 
+  /** Optimistically toggle a node's bookmark state */
+  toggleBookmark: (nodeId: string) => void
+
   /** Update search query */
   setSearchQuery: (query: string) => void
 }
@@ -47,6 +50,13 @@ export const useNodesStore = create<NodesState>()((set) => ({
     set((state) => ({
       nodes: state.nodes.map((n) =>
         n.id === nodeId ? { ...n, ...updates } : n
+      ),
+    })),
+
+  toggleBookmark: (nodeId) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId ? { ...n, is_bookmarked: !(n.is_bookmarked ?? false) } : n
       ),
     })),
 

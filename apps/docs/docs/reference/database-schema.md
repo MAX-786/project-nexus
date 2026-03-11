@@ -39,6 +39,7 @@ The primary content table. Each row is a captured article or video.
 | `summary` | `text` | AI-generated summary. |
 | `raw_text` | `text` | The original scraped text. Loaded lazily. |
 | `embedding` | `vector(1536)` | Text embedding for semantic search. |
+| `is_bookmarked` | `boolean` | Bookmark status. Partial index for fast filtering. Default: `false`. |
 | `created_at` | `timestamptz` | Capture timestamp. |
 
 **RLS**: Users can read, insert, update, and delete only their own nodes.
@@ -95,6 +96,52 @@ Spaced repetition tracking for each node.
 | `ease_factor` | `numeric` | SM-2 ease factor. Default: `2.5`. |
 
 **RLS**: Users can manage only their own review records.
+
+---
+
+### `tags`
+
+User-defined labels for categorizing nodes, with color support.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `uuid` | Primary key. |
+| `user_id` | `uuid` | Owner. |
+| `name` | `text` | Tag name. Unique constraint on `(user_id, name)`. |
+| `color` | `text` | UI color for the tag. |
+
+**RLS**: Users can manage only their own tags.
+
+---
+
+### `node_tags`
+
+Join table between nodes and tags.
+
+| Column | Type | Description |
+|---|---|---|
+| `node_id` | `uuid` | References `nodes(id)`. Cascade deletes. |
+| `tag_id` | `uuid` | References `tags(id)`. Cascade deletes. |
+
+**Primary Key**: `(node_id, tag_id)`
+**RLS**: Managed through RLS linking nodes and tags.
+
+---
+
+### `highlights`
+
+User text passages and annotations saved from node content.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `uuid` | Primary key. |
+| `node_id` | `uuid` | Parent node. Cascade deletes on node deletion. |
+| `user_id` | `uuid` | Owner. |
+| `text` | `text` | The highlighted text passage. |
+| `color` | `text` | Color-coding for the highlight. |
+| `note` | `text` | Optional user notes associated with the highlight. |
+
+**RLS**: Users can manage only their own highlights.
 
 ---
 

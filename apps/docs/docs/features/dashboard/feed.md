@@ -17,9 +17,10 @@ The dashboard uses a **split-panel layout**:
 Each node card in the Feed shows:
 - **Title** — the page title from the captured URL.
 - **Summary** — the first few lines of the AI-generated summary.
-- **Entity tags** — extracted people, tools, and concepts.
+- **Tags** — AI-extracted entity tags and custom user tags (created via the `TagManager`).
 - **Source URL** — a truncated link to the original page.
 - **Timestamp** — when the node was captured.
+- **Bookmarks** — a star icon to mark and easily filter important nodes.
 
 ## Virtualized Rendering
 
@@ -29,9 +30,25 @@ The Feed uses **[@tanstack/react-virtual](https://tanstack.com/virtual/latest)**
 
 Click any node card to open its **detail view** in the right panel. The detail view loads the full `raw_text` lazily (only fetched when the node is selected, not during the initial Feed load) to keep initial page loads fast.
 
+This view also includes the **HighlightsPanel**, which saves color-coded text passages and personal annotations extracted from the node.
+
 ## Searching
 
 Use **Cmd+K / Ctrl+K** or the search icon to open the command search palette. See [Search Your Knowledge](../../how-to/search-your-knowledge.md).
+
+## Filtering & Sorting
+
+You can refine your Feed using several powerful filters combined in a unified pipeline:
+- **Sort by**: Newest, Oldest, Most Connections, or Most Entities.
+- **Date Range**: Filter nodes by 7 days, 30 days, 90 days, or all time.
+- **Bookmarks**: Toggle to show only bookmarked nodes.
+- **Tags**: Filter by specific tags using the dropdown.
+
+## Keyboard Shortcuts
+
+Navigate the dashboard rapidly using built-in keyboard shortcuts:
+- `1`–`5`: Switch between dashboard tabs (e.g., Feed, Knowledge Graph, Review).
+- `?`: Open the keyboard shortcuts help dialog.
 
 ## Bulk Operations
 

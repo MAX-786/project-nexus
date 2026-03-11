@@ -33,6 +33,8 @@ Each flashcard shows:
 2. A **"Reveal"** button to show the summary.
 3. After reveal: **rating buttons** (Forgot, Hard, Good, Easy).
 
+The cards feature smooth 3D flip animations during rate and skip actions, creating an engaging review experience. Once the daily queue is complete, an enhanced completion screen is displayed.
+
 ## Review Streak
 
 The streak counter shows how many consecutive days you have completed at least one review. Maintaining a streak helps build a consistent daily review habit.

@@ -104,3 +104,49 @@ export interface DBUserSettings {
   custom_shortcuts: Record<string, string>
   updated_at: string
 }
+
+export interface DBDailyDigest {
+  id: string
+  user_id: string
+  content: string
+  node_ids: string[]
+  insights: string[]
+  is_read: boolean
+  created_at: string
+}
+
+/** Analytics time-series data point */
+export interface AnalyticsDataPoint {
+  date: string
+  count: number
+}
+
+/** Entity distribution for analytics */
+export interface EntityDistribution {
+  type: string
+  count: number
+}
+
+/** Analytics summary for dashboard */
+export interface AnalyticsSummary {
+  totalNodes: number
+  totalEntities: number
+  totalEdges: number
+  totalReviews: number
+  totalCollections: number
+  streak: number
+  nodesByDay: AnalyticsDataPoint[]
+  reviewsByDay: AnalyticsDataPoint[]
+  entityDistribution: EntityDistribution[]
+  weeklyActivity: AnalyticsDataPoint[]
+}
+
+/** Related node recommendation */
+export interface RelatedNode {
+  id: string
+  title: string
+  summary: string
+  url: string
+  similarity_score: number
+  reason: 'vector' | 'entity' | 'collection'
+}

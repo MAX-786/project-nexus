@@ -1,11 +1,18 @@
 'use client'
 
-import { Sun, Moon, Monitor, Trash2, Brain, Eye, EyeOff, Sparkles, Keyboard } from 'lucide-react'
+import { Sun, Moon, Monitor, Trash2, Brain, Eye, EyeOff, Sparkles, Keyboard, Download, Upload, FileJson, FileText, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
 import { deleteAccount } from '@/app/dashboard/settings/actions'
+import {
+  exportAsJSON,
+  exportAsMarkdown,
+  exportAsCSV,
+  importFromJSON,
+  importFromCSV,
+} from '@/app/dashboard/settings/export-import-actions'
 import { Button } from '@/components/ui/button'
 import { useSettings } from '@/components/dashboard/settings-provider'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
@@ -43,6 +50,85 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
   const memorySettings = useMemorySettings()
   const { settings: appSettings, updateSettings } = useSettings()
   const { shortcuts } = useKeyboardShortcuts()
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+
+  /* ---- Download helper ---- */
+  function downloadFile(content: string, filename: string, type: string) {
+    const blob = new Blob([content], { type })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  /* ---- Export handlers ---- */
+  async function handleExportJSON() {
+    setIsExporting(true)
+    try {
+      const result = await exportAsJSON()
+      if ('error' in result) { toast.error(result.error as string); return }
+      downloadFile(result.data as string, `nexus-export-${new Date().toISOString().split('T')[0]}.json`, 'application/json')
+      toast.success('Exported as JSON')
+    } catch { toast.error('Export failed') } finally { setIsExporting(false) }
+  }
+
+  async function handleExportMarkdown() {
+    setIsExporting(true)
+    try {
+      const result = await exportAsMarkdown()
+      if ('error' in result) { toast.error(result.error as string); return }
+      downloadFile(result.data as string, `nexus-export-${new Date().toISOString().split('T')[0]}.md`, 'text/markdown')
+      toast.success('Exported as Markdown')
+    } catch { toast.error('Export failed') } finally { setIsExporting(false) }
+  }
+
+  async function handleExportCSV() {
+    setIsExporting(true)
+    try {
+      const result = await exportAsCSV()
+      if ('error' in result) { toast.error(result.error as string); return }
+      downloadFile(result.data as string, `nexus-export-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv')
+      toast.success('Exported as CSV')
+    } catch { toast.error('Export failed') } finally { setIsExporting(false) }
+  }
+
+  /* ---- Import handler ---- */
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsImporting(true)
+    try {
+      const text = await file.text()
+      let result: { success?: boolean; error?: string; message?: string }
+
+      if (file.name.endsWith('.json')) {
+        result = await importFromJSON(text)
+      } else if (file.name.endsWith('.csv')) {
+        result = await importFromCSV(text)
+      } else {
+        toast.error('Unsupported file format. Use .json or .csv')
+        return
+      }
+
+      if ('error' in result && result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(result.message ?? 'Import successful')
+      }
+    } catch {
+      toast.error('Import failed')
+    } finally {
+      setIsImporting(false)
+      // Reset the input
+      e.target.value = ''
+    }
+  }
 
   const handleDeleteAccount = () => {
     startTransition(async () => {
@@ -316,6 +402,79 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
             Connect Extension →
           </a>
         </Button>
+      </section>
+
+      {/* Export & Import Section — Issue #71 */}
+      <section className="rounded-xl border border-border bg-card p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Download className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold text-foreground">Export &amp; Import</h2>
+        </div>
+        <p className="text-sm text-muted-foreground mb-5">
+          Export your entire knowledge base for backup or import data from external sources.
+        </p>
+
+        <div className="space-y-5">
+          {/* Export */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Export Knowledge Base</Label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleExportJSON}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+              >
+                {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileJson className="h-3.5 w-3.5" />}
+                JSON (Full)
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleExportMarkdown}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+              >
+                {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                Markdown
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleExportCSV}
+                disabled={isExporting}
+                className="flex items-center gap-2"
+              >
+                {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
+                CSV
+              </Button>
+            </div>
+          </div>
+
+          {/* Import */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Import Data</Label>
+            <div className="flex items-center gap-3">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept=".json,.csv"
+                  onChange={handleImportFile}
+                  className="hidden"
+                  disabled={isImporting}
+                />
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-border bg-background hover:bg-muted transition-colors">
+                  {isImporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                  Choose File (.json or .csv)
+                </div>
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Import from a previous Nexus JSON export or a CSV file with Title and URL columns.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* Danger Zone Section */}

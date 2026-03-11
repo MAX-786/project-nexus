@@ -1,4 +1,4 @@
-import { Brain, Rss, Network, GraduationCap, Sparkles, LogOut, Settings, Menu } from 'lucide-react'
+import { Brain, Rss, Network, GraduationCap, Sparkles, LogOut, Settings, Menu, BarChart3, Newspaper } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -72,6 +72,14 @@ export default async function DashboardLayout({
     <AuthProvider user={authUser}>
       <SettingsProvider initialSettings={settings}>
         <div className="flex h-screen flex-col bg-background">
+          {/* Skip Navigation Link — Accessibility (#78) */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            Skip to main content
+          </a>
+
           {/* Dashboard Header */}
           <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
           <div className="flex h-14 items-center justify-between px-4 sm:px-6 gap-4">
@@ -91,11 +99,13 @@ export default async function DashboardLayout({
                     </SheetHeader>
                     
                     {/* Mobile Navigation */}
-                    <nav className="flex flex-col gap-2">
+                    <nav className="flex flex-col gap-2" aria-label="Dashboard navigation">
                       <NavTab href="/dashboard/feed" icon={<Rss className="h-4 w-4" />} label="Feed" />
                       <NavTab href="/dashboard/graph" icon={<Network className="h-4 w-4" />} label="Graph" />
                       <NavTab href="/dashboard/review" icon={<GraduationCap className="h-4 w-4" />} label="Review" />
                       <NavTab href="/dashboard/memory" icon={<Sparkles className="h-4 w-4" />} label="Memory" />
+                      <NavTab href="/dashboard/analytics" icon={<BarChart3 className="h-4 w-4" />} label="Analytics" />
+                      <NavTab href="/dashboard/digest" icon={<Newspaper className="h-4 w-4" />} label="Digest" />
                     </nav>
                     
                     <Separator />
@@ -140,11 +150,13 @@ export default async function DashboardLayout({
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex flex-1 justify-center min-w-0">
-              <nav className="flex items-center gap-1 rounded-xl bg-muted/50 p-1">
+              <nav className="flex items-center gap-1 rounded-xl bg-muted/50 p-1" aria-label="Dashboard navigation">
                 <NavTab href="/dashboard/feed" icon={<Rss className="h-4 w-4" />} label="Feed" />
                 <NavTab href="/dashboard/graph" icon={<Network className="h-4 w-4" />} label="Graph" />
                 <NavTab href="/dashboard/review" icon={<GraduationCap className="h-4 w-4" />} label="Review" />
                 <NavTab href="/dashboard/memory" icon={<Sparkles className="h-4 w-4" />} label="Memory" />
+                <NavTab href="/dashboard/analytics" icon={<BarChart3 className="h-4 w-4" />} label="Analytics" />
+                <NavTab href="/dashboard/digest" icon={<Newspaper className="h-4 w-4" />} label="Digest" />
               </nav>
             </div>
 
@@ -205,7 +217,7 @@ export default async function DashboardLayout({
         <DashboardStats dueCount={dueCount ?? 0} />
 
           {/* Main Content */}
-          <main className="flex-1 overflow-hidden">{children}</main>
+          <main id="main-content" className="flex-1 overflow-hidden" role="main">{children}</main>
           <OnboardingDialog />
           <KeyboardShortcutsProvider />
         </div>

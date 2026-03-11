@@ -66,6 +66,11 @@ const config: Config = {
           label: 'Docs',
         },
         {
+          href: 'https://github.com/sponsors/MAX-786',
+          label: 'Sponsor 💖',
+          position: 'right',
+        },
+        {
           href: 'https://github.com/MAX-786/project-nexus',
           label: 'GitHub',
           position: 'right',
@@ -101,6 +106,10 @@ const config: Config = {
             {
               label: 'Report an Issue',
               href: 'https://github.com/MAX-786/project-nexus/issues',
+            },
+            {
+              label: 'Support Us 💖',
+              href: 'https://github.com/sponsors/MAX-786',
             },
           ],
         },

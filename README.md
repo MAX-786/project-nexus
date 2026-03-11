@@ -1,5 +1,7 @@
 # Project Nexus: Your Second Brain. Not Big Tech's.
 
+[![Sponsor](https://img.shields.io/badge/Sponsor-💖-ff69b4?style=for-the-badge&logo=github)](https://github.com/sponsors/MAX-786)
+
 Project Nexus is an open-source, **Privacy-First (BYOK)** knowledge management system. It automatically captures web content, generates AI summaries, builds a visual knowledge graph, and helps you remember everything through spaced repetition—all while keeping your data under your control.
 
 ---
@@ -95,6 +97,17 @@ Project Nexus follows an **Open Core** philosophy to remain sustainable while st
 *   **Tier 1: Hacker (Free)**: 100% Open-source code. BYOK (Bring Your Own Key). Use local storage or your own self-hosted Supabase instance.
 *   **Tier 2: Nexus Cloud**: Managed database hosting, cross-device sync, and automatic backups.
 *   **Tier 3: Nexus Pro**: Managed hosting plus built-in AI credits (no BYOK required) and priority access to new features.
+
+---
+
+## 💖 Support & Sponsor
+
+Project Nexus is completely open-source and maintained by the community. You can support our ongoing development, server costs, and infrastructure by becoming a sponsor!
+
+*   🧑‍💻 **Individual Backers**: Help us triage bugs, write documentation, and add new integrations. [Sponsor via GitHub](https://github.com/sponsors/MAX-786).
+*   🏢 **Corporate Sponsors**: Does your team use Project Nexus to manage organizational knowledge? We offer tiered sponsorship packages, priority support, and logo placement in our README.
+
+Every contribution matters. Thank you for making Project Nexus possible!
 
 ---
 

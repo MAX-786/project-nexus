@@ -243,3 +243,102 @@ export async function toggleBookmark(nodeId: string) {
   revalidatePath('/dashboard/graph')
   return { success: true, is_bookmarked: newState }
 }
+
+// ---- Tag Actions ----
+
+export async function getTags() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data, error } = await supabase
+    .from('tags')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('name')
+
+  if (error) return { error: error.message }
+  return { data }
+}
+
+export async function createTag(name: string, color?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { data, error } = await supabase
+    .from('tags')
+    .insert({ name: name.trim(), color: color || '#6366f1', user_id: user.id })
+    .select('*')
+    .single()
+
+  if (error) {
+    if (error.code === '23505') return { error: 'Tag already exists' }
+    return { error: error.message }
+  }
+  return { data }
+}
+
+export async function deleteTag(tagId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('tags')
+    .delete()
+    .eq('id', tagId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard/feed')
+  return { success: true }
+}
+
+export async function addTagToNodes(nodeIds: string[], tagId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const rows = nodeIds.map(nodeId => ({ node_id: nodeId, tag_id: tagId }))
+  const { error } = await supabase
+    .from('node_tags')
+    .upsert(rows, { onConflict: 'node_id,tag_id' })
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard/feed')
+  return { success: true }
+}
+
+export async function removeTagFromNode(nodeId: string, tagId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const { error } = await supabase
+    .from('node_tags')
+    .delete()
+    .eq('node_id', nodeId)
+    .eq('tag_id', tagId)
+
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard/feed')
+  return { success: true }
+}
+
+export async function getNodeTags() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // Get all node-tag mappings for user's nodes via inner join
+  const { data, error } = await supabase
+    .from('node_tags')
+    .select('node_id, tag_id, nodes!inner(user_id)')
+    .eq('nodes.user_id', user.id)
+
+  if (error) return { error: error.message }
+  // Strip the joined nodes field from the response
+  const mapped = (data ?? []).map(({ node_id, tag_id }) => ({ node_id, tag_id }))
+  return { data: mapped }
+}

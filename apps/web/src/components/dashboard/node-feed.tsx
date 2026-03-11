@@ -56,6 +56,7 @@ import {
   Copy,
   Filter,
   Star,
+  Tags,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -70,13 +71,14 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import type { DBNode, DBEntity, DBCollection } from '@/lib/types'
+import type { DBNode, DBEntity, DBCollection, DBTag } from '@/lib/types'
 import { useNodesStore, useFilteredNodes } from '@/stores/nodes-store'
 import { useUIStore } from '@/stores/ui-store'
 import { createClient } from '@/utils/supabase/client'
 
 import { CollectionTaggerDialog } from './collection-tagger-dialog'
 import { FeedEmptyState } from './empty-states'
+import { TagManager, NodeTagBadges } from './tag-manager'
 
 // ---- Helpers ----
 
@@ -239,6 +241,11 @@ export default function NodeFeed() {
   const [nodeCollections, setNodeCollections] = useState<{node_id: string, collection_id: string}[]>([])
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
 
+  // Tags state
+  const [tags, setTags] = useState<DBTag[]>([])
+  const [nodeTags, setNodeTags] = useState<{node_id: string, tag_id: string}[]>([])
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
+
   // Bookmark filter state
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false)
   const toggleBookmarkInStore = useNodesStore((s) => s.toggleBookmark)
@@ -257,6 +264,21 @@ export default function NodeFeed() {
   useEffect(() => {
     loadCollectionsData()
   }, [loadCollectionsData])
+
+  // Fetch tags data
+  const loadTagsData = useCallback(async () => {
+    const supabase = createClient()
+    const [{ data: t }, { data: nt }] = await Promise.all([
+      supabase.from('tags').select('*').order('name'),
+      supabase.from('node_tags').select('node_id, tag_id')
+    ])
+    if (t) setTags(t)
+    if (nt) setNodeTags(nt)
+  }, [])
+
+  useEffect(() => {
+    loadTagsData()
+  }, [loadTagsData])
 
   // Lazy-loaded raw_text for the detail sheet
   const [rawText, setRawText] = useState<string | null>(null)
@@ -396,19 +418,20 @@ export default function NodeFeed() {
 
 
 
-  // Apply collection filter
-  let displayNodes = filteredNodes
-  if (selectedCollectionId) {
-    const nodeIdsInCollection = new Set(
-      nodeCollections
-        .filter(nc => nc.collection_id === selectedCollectionId)
-        .map(nc => nc.node_id)
-    )
-    displayNodes = displayNodes.filter(n => nodeIdsInCollection.has(n.id))
-  }
-  if (showBookmarksOnly) {
-    displayNodes = displayNodes.filter(n => n.is_bookmarked)
-  }
+  // Apply filters (collections, tags, bookmarks)
+  const displayNodes = (() => {
+    let result = filteredNodes
+    if (showBookmarksOnly) result = result.filter(n => n.is_bookmarked)
+    if (selectedTagId) {
+      const taggedNodeIds = new Set(nodeTags.filter(nt => nt.tag_id === selectedTagId).map(nt => nt.node_id))
+      result = result.filter(n => taggedNodeIds.has(n.id))
+    }
+    if (selectedCollectionId) {
+      const collectionNodeIds = new Set(nodeCollections.filter(nc => nc.collection_id === selectedCollectionId).map(nc => nc.node_id))
+      result = result.filter(n => collectionNodeIds.has(n.id))
+    }
+    return result
+  })()
 
   // Virtualized list
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -482,6 +505,30 @@ export default function NodeFeed() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {tags.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant={selectedTagId ? "default" : "outline"} size="sm" className="gap-1.5">
+                    <Tags className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">
+                      {selectedTagId ? tags.find(t => t.id === selectedTagId)?.name : 'Tags'}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setSelectedTagId(null)}>
+                    All Tags
+                  </DropdownMenuItem>
+                  {tags.map(tag => (
+                    <DropdownMenuItem key={tag.id} onClick={() => setSelectedTagId(tag.id)}>
+                      <span className="h-2 w-2 rounded-full mr-2" style={{ backgroundColor: tag.color }} />
+                      {tag.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {nodes.length > 0 && (
             <div className="flex items-center gap-2">
@@ -675,6 +722,7 @@ export default function NodeFeed() {
                           </span>
                         )}
                       </div>
+                      <NodeTagBadges nodeId={node.id} tags={tags} nodeTags={nodeTags} />
                     </CardContent>
                   </Card>
                 </div>

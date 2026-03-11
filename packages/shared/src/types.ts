@@ -58,6 +58,20 @@ export interface DBNodeCollection {
   created_at: string
 }
 
+export interface DBTag {
+  id: string
+  user_id: string
+  name: string
+  color: string
+  created_at: string
+}
+
+export interface DBNodeTag {
+  node_id: string
+  tag_id: string
+  created_at: string
+}
+
 export interface DBConsolidation {
   id: string
   user_id: string

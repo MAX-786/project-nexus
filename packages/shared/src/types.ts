@@ -17,7 +17,7 @@ export interface DBNode {
 export interface DBEntity {
   id: string
   name: string
-  type: string
+  entity_type: string
   user_id: string
   node_id: string | null
 }

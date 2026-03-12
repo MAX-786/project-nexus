@@ -83,7 +83,7 @@ const ENTITY_TYPE_COLORS: Record<string, string> = {
 
 function getNodeAccentColor(entities: DBEntity[]): string {
   if (!entities || entities.length === 0) return 'border-border/50'
-  const primaryType = entities[0]?.type?.toLowerCase() ?? ''
+  const primaryType = entities[0]?.entity_type?.toLowerCase() ?? ''
   const colorMap: Record<string, string> = {
     person: 'border-blue-500/40',
     concept: 'border-purple-500/40',
@@ -131,7 +131,7 @@ function NexusNode({ data }: NodeProps) {
         {entityCount > 0 && (
           <div className="mt-2 flex items-center gap-1 flex-wrap">
             {entities.slice(0, 3).map((e, i) => {
-              const colorClass = ENTITY_TYPE_COLORS[e.type?.toLowerCase()] ?? 'bg-muted-foreground'
+              const colorClass = ENTITY_TYPE_COLORS[e.entity_type?.toLowerCase()] ?? 'bg-muted-foreground'
               return (
                 <span key={i} className="flex items-center gap-0.5">
                   <div className={`h-1.5 w-1.5 rounded-full ${colorClass}`} />
@@ -196,7 +196,7 @@ function KnowledgeGraphInner({
   const entityTypes = useMemo(() => {
     const types = new Set<string>()
     for (const e of initialEntities) {
-      if (e.type) types.add(e.type.toLowerCase())
+      if (e.entity_type) types.add(e.entity_type.toLowerCase())
     }
     return Array.from(types).sort()
   }, [initialEntities])
@@ -226,7 +226,7 @@ function KnowledgeGraphInner({
     if (entityTypeFilter) {
       const matchingNodeIds = new Set(
         initialEntities
-          .filter((e) => e.type?.toLowerCase() === entityTypeFilter)
+          .filter((e) => e.entity_type?.toLowerCase() === entityTypeFilter)
           .map((e) => e.node_id)
           .filter(Boolean) as string[]
       )
@@ -762,7 +762,7 @@ function KnowledgeGraphInner({
                         {nodeEntities.map((entity) => (
                           <Badge key={entity.id} variant="outline" className="text-xs px-2.5 py-1 bg-primary/10 text-primary border-primary/20">
                             {entity.name}
-                            <span className="ml-1 opacity-60 text-[10px]">{entity.type}</span>
+                            <span className="ml-1 opacity-60 text-[10px]">{entity.entity_type}</span>
                           </Badge>
                         ))}
                       </div>

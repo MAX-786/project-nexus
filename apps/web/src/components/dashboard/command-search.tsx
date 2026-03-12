@@ -243,7 +243,7 @@ export default function CommandSearch() {
                         <HighlightMatch text={entity.name} query={query} />
                       </p>
                       <p className="truncate text-xs text-muted-foreground capitalize">
-                        {entity.type}
+                        {entity.entity_type}
                       </p>
                     </div>
                   </CommandItem>

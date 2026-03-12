@@ -176,7 +176,7 @@ function exportNodeAsMarkdown(node: DBNode, entities: DBEntity[], rawText?: stri
   ]
   if (entities.length > 0) {
     lines.push(`## Entities`, ``)
-    entities.forEach((e) => lines.push(`- **${e.name}** (${e.type})`))
+    entities.forEach((e) => lines.push(`- **${e.name}** (${e.entity_type})`))
     lines.push(``)
   }
   if (rawText) {
@@ -789,7 +789,7 @@ export default function NodeFeed() {
                           <Badge
                             key={entity.id}
                             variant="outline"
-                            className={`text-xs px-2 py-0.5 ${getEntityColor(entity.type)}`}
+                            className={`text-xs px-2 py-0.5 ${getEntityColor(entity.entity_type)}`}
                           >
                             <Tag className="h-2.5 w-2.5 mr-1" />
                             {entity.name}
@@ -1030,10 +1030,10 @@ export default function NodeFeed() {
                         <Badge
                           key={entity.id}
                           variant="outline"
-                          className={`text-xs px-2.5 py-1 ${getEntityColor(entity.type)}`}
+                          className={`text-xs px-2.5 py-1 ${getEntityColor(entity.entity_type)}`}
                         >
                           {entity.name}
-                          <span className="ml-1 opacity-60 text-[10px]">{entity.type}</span>
+                          <span className="ml-1 opacity-60 text-[10px]">{entity.entity_type}</span>
                         </Badge>
                       ))}
                     </div>

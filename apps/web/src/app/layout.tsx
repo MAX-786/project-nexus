@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -15,12 +15,15 @@ export const metadata: Metadata = {
   title: "Nexus — Your Second Brain",
   description: "AI-powered knowledge capture, automatic graph linking, and spaced repetition. Open-source, privacy-first, BYOK.",
   manifest: "/manifest.json",
-  themeColor: "#6d28d9",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Nexus",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#6d28d9",
 };
 
 export default function RootLayout({

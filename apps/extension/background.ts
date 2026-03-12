@@ -143,7 +143,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
         summary: z.string().describe("A concise summary of the content, max 3 sentences."),
         entities: z.array(z.object({
           name: z.string(),
-          type: z.string()
+          entity_type: z.string()
         })).describe("Key concepts, people, or deeply technical terms found in the text.")
       }),
       prompt: `Analyze the following webpage content.\nTitle: ${result.title}\nURL: ${result.url}\n\nContent:\n${result.text.substring(0, 15000)}`
@@ -191,7 +191,7 @@ async function processCapture(result: CaptureResult, sendResponse: (res: any) =>
           user_id: userId,
           node_id: nodeId,
           name: e.name,
-          type: e.type
+          entity_type: e.entity_type
         })))
 
       if (entityError) {

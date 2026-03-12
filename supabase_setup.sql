@@ -76,7 +76,7 @@ CREATE TABLE public.entities (
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   node_id UUID REFERENCES public.nodes(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  type TEXT NOT NULL
+  entity_type TEXT NOT NULL
 );
 
 ALTER TABLE public.entities ENABLE ROW LEVEL SECURITY;

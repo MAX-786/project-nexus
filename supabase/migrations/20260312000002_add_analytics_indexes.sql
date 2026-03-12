@@ -6,6 +6,13 @@ CREATE INDEX IF NOT EXISTS idx_nodes_user_created ON public.nodes(user_id, creat
 CREATE INDEX IF NOT EXISTS idx_nodes_user_bookmarked ON public.nodes(user_id, is_bookmarked) WHERE is_bookmarked = TRUE;
 
 -- Indexes for entities table
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='entities' AND column_name='type') THEN
+    ALTER TABLE public.entities RENAME COLUMN type TO entity_type;
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_entities_user_id ON public.entities(user_id);
 CREATE INDEX IF NOT EXISTS idx_entities_node_id ON public.entities(node_id);
 CREATE INDEX IF NOT EXISTS idx_entities_type ON public.entities(user_id, entity_type);

@@ -107,14 +107,15 @@ export default function OnboardingDialog() {
       <DialogContent className="sm:max-w-md border-border/50 bg-background/95 backdrop-blur-xl">
         <DialogHeader>
           <div className="mb-2">
-            <Progress value={progress} className="h-1.5" />
-            <p className="text-xs text-muted-foreground mt-1.5">
+            <Progress value={progress} className="h-1.5" aria-label={`Onboarding progress: step ${step + 1} of ${steps.length}`} />
+            <p className="text-xs text-muted-foreground mt-1.5" aria-live="polite" aria-atomic="true">
               Step {step + 1} of {steps.length}
             </p>
           </div>
 
           <div
             className={`mx-auto mb-4 h-20 w-20 rounded-2xl bg-gradient-to-br ${current.gradient} flex items-center justify-center shadow-lg`}
+            aria-hidden="true"
           >
             {current.icon}
           </div>
@@ -132,8 +133,9 @@ export default function OnboardingDialog() {
               target="_blank"
               rel="noreferrer"
               className="text-sm text-primary hover:underline flex items-center gap-1"
+              aria-label={`${current.link.text} (opens in new tab)`}
             >
-              {current.link.text} <ArrowRight className="h-3.5 w-3.5" />
+              {current.link.text} <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </a>
           </div>
         )}
@@ -144,17 +146,18 @@ export default function OnboardingDialog() {
             size="sm"
             className="text-muted-foreground gap-1"
             onClick={complete}
+            aria-label="Skip onboarding tour"
           >
-            <X className="h-3.5 w-3.5" /> Skip tour
+            <X className="h-3.5 w-3.5" aria-hidden="true" /> Skip tour
           </Button>
-          <Button className="flex-1 gap-2" onClick={next}>
+          <Button className="flex-1 gap-2" onClick={next} aria-label={step === steps.length - 1 ? current.cta : `${current.cta} (step ${step + 1} of ${steps.length})`}>
             {step === steps.length - 1 ? (
               <>
-                <CheckCircle2 className="h-4 w-4" /> {current.cta}
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> {current.cta}
               </>
             ) : (
               <>
-                {current.cta} <ArrowRight className="h-4 w-4" />
+                {current.cta} <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </>
             )}
           </Button>

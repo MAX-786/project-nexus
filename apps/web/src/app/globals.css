@@ -280,6 +280,109 @@
   animation-delay: 450ms;
 }
 
+/* ── Accessibility ──────────────────────────────────────────── */
+
+/* Skip navigation link */
+.skip-nav {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-nav:focus {
+  top: 1rem;
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Enhanced focus-visible ring for keyboard navigation */
+:focus-visible {
+  outline: 2px solid oklch(0.637 0.237 275);
+  outline-offset: 2px;
+}
+
+/* Ensure interactive elements always show a clear focus ring */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="option"]:focus-visible,
+[role="checkbox"]:focus-visible,
+[role="switch"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid oklch(0.637 0.237 275);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: oklch(0.5 0 0);
+    --muted-foreground: oklch(0.35 0 0);
+    --ring: oklch(0.205 0 0);
+  }
+
+  .dark {
+    --border: oklch(0.65 0 0);
+    --muted-foreground: oklch(0.75 0 0);
+    --ring: oklch(0.93 0.01 270);
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  [role="button"]:focus-visible {
+    outline-width: 3px;
+    outline-color: currentColor;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-nexus-fade-in,
+  .animate-nexus-glow,
+  .animate-nexus-slide-in,
+  .animate-nexus-float,
+  .animate-nexus-float-slow,
+  .animate-nexus-float-delay,
+  .animate-nexus-float-delay-2,
+  .animate-nexus-orbit,
+  .animate-nexus-orbit-slow,
+  .animate-nexus-gradient,
+  .animate-nexus-spin-slow {
+    animation: none !important;
+  }
+
+  .stagger-children > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 /* React Flow dark theme overrides */
 .dark .react-flow__background {
   background-color: oklch(0.13 0.01 270);

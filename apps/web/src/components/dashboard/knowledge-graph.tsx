@@ -358,9 +358,9 @@ function KnowledgeGraphInner({
   }
 
   return (
-    <div className="h-full w-full relative">
+    <div className="h-full w-full relative" role="region" aria-label="Knowledge graph visualization">
       {/* Graph Toolbar */}
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+      <div className="absolute top-4 left-4 z-10 flex items-center gap-2" role="toolbar" aria-label="Graph controls">
         {/* Mode Toggle */}
         <div className="flex items-center gap-1 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 p-1 shadow-lg">
           <Tooltip>
@@ -370,8 +370,10 @@ function KnowledgeGraphInner({
                 size="sm"
                 className="h-8 gap-1.5 text-xs"
                 onClick={handleSelectMode}
+                aria-pressed={!connectMode}
+                aria-label="Select mode: click nodes to view details"
               >
-                <MousePointer2 className="h-3.5 w-3.5" />
+                <MousePointer2 className="h-3.5 w-3.5" aria-hidden="true" />
                 Select
               </Button>
             </TooltipTrigger>
@@ -385,8 +387,10 @@ function KnowledgeGraphInner({
                 size="sm"
                 className={`h-8 gap-1.5 text-xs ${connectMode ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
                 onClick={handleConnectMode}
+                aria-pressed={connectMode}
+                aria-label="Connect mode: drag between nodes to create manual links"
               >
-                <Link2 className="h-3.5 w-3.5" />
+                <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
                 Connect
               </Button>
             </TooltipTrigger>
@@ -395,21 +399,21 @@ function KnowledgeGraphInner({
         </div>
 
         {/* Edge Stats */}
-        <div className="flex items-center gap-2 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-3 py-1.5 shadow-lg">
+        <div className="flex items-center gap-2 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-3 py-1.5 shadow-lg" role="status" aria-label={`${autoEdgeCount} AI connections, ${manualEdgeCount} manual connections`}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Sparkles className="h-3 w-3 text-primary" />
+              <span className="flex items-center gap-1 text-xs text-muted-foreground" aria-label={`${autoEdgeCount} AI-generated connections`}>
+                <Sparkles className="h-3 w-3 text-primary" aria-hidden="true" />
                 {autoEdgeCount}
               </span>
             </TooltipTrigger>
             <TooltipContent side="bottom">AI-generated connections</TooltipContent>
           </Tooltip>
-          <Separator orientation="vertical" className="h-3" />
+          <Separator orientation="vertical" className="h-3" aria-hidden="true" />
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Hand className="h-3 w-3 text-emerald-500" />
+              <span className="flex items-center gap-1 text-xs text-muted-foreground" aria-label={`${manualEdgeCount} manual connections`}>
+                <Hand className="h-3 w-3 text-emerald-500" aria-hidden="true" />
                 {manualEdgeCount}
               </span>
             </TooltipTrigger>
@@ -421,8 +425,8 @@ function KnowledgeGraphInner({
       {/* Cluster Controls — Top Right */}
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
         {/* Node Count Indicator */}
-        <div className="flex items-center gap-2 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-3 py-1.5 shadow-lg">
-          <Network className="h-3 w-3 text-muted-foreground" />
+        <div className="flex items-center gap-2 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-3 py-1.5 shadow-lg" role="status" aria-live="polite">
+          <Network className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
           <span className="text-xs text-muted-foreground">
             Showing {visibleNodes.length} of {initialNodes.length} nodes
           </span>
@@ -504,6 +508,7 @@ function KnowledgeGraphInner({
               size="sm"
               className="h-7 text-xs"
               onClick={handleDismissEdge}
+              aria-label="Dismiss edge selection"
             >
               Dismiss
             </Button>
@@ -512,19 +517,19 @@ function KnowledgeGraphInner({
       })()}
 
       {/* Graph Legend */}
-      <div className="absolute bottom-4 left-4 z-10 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-4 py-3 shadow-lg">
+      <div className="absolute bottom-4 left-4 z-10 rounded-xl bg-card/90 backdrop-blur-sm border border-border/50 px-4 py-3 shadow-lg" role="note" aria-label="Graph legend">
         <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">Legend</p>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-0.5 bg-primary/40" style={{ background: 'linear-gradient(90deg, oklch(0.637 0.237 275 / 40%), oklch(0.7 0.2 310 / 40%))' }} />
+            <div className="w-6 h-0.5 bg-primary/40" style={{ background: 'linear-gradient(90deg, oklch(0.637 0.237 275 / 40%), oklch(0.7 0.2 310 / 40%))' }} aria-hidden="true" />
             <span className="text-[10px] text-muted-foreground">AI connection</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-0.5 border-t-2 border-dashed border-emerald-500/50" />
+            <div className="w-6 h-0.5 border-t-2 border-dashed border-emerald-500/50" aria-hidden="true" />
             <span className="text-[10px] text-muted-foreground">Manual link</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-2.5 w-2.5 rounded-full bg-primary/60" />
+            <div className="h-2.5 w-2.5 rounded-full bg-primary/60" aria-hidden="true" />
             <span className="text-[10px] text-muted-foreground">Knowledge node</span>
           </div>
         </div>
@@ -586,13 +591,13 @@ function KnowledgeGraphInner({
                     {selectedDBNode.title}
                   </SheetTitle>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <a href={selectedDBNode.url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-primary hover:underline">
-                      <LinkIcon className="h-3 w-3" />
+                    <a href={selectedDBNode.url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-primary hover:underline" aria-label={`Open source page: ${(() => { try { return new URL(selectedDBNode.url).hostname.replace('www.', '') } catch { return selectedDBNode.url } })()} (opens in new tab)`}>
+                      <LinkIcon className="h-3 w-3" aria-hidden="true" />
                       {(() => { try { return new URL(selectedDBNode.url).hostname.replace('www.', '') } catch { return selectedDBNode.url } })()}
                     </a>
                     {selectedDBNode.created_at && (
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="h-3 w-3" aria-hidden="true" />
                         {new Date(selectedDBNode.created_at).toLocaleDateString()}
                       </span>
                     )}
@@ -671,7 +676,7 @@ function KnowledgeGraphInner({
                             if (!other) return null
                             return (
                               <div key={edge.id} className="flex items-center gap-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-2.5 text-sm">
-                                <div className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                                <div className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
                                 <p className="font-medium truncate text-xs flex-1 cursor-pointer hover:text-primary transition-colors" onClick={() => setSelectedNodeId(other.id)}>{other.title}</p>
                                 {edge.label && <span className="text-[10px] text-emerald-400/70">{edge.label}</span>}
                                 <Button
@@ -680,8 +685,9 @@ function KnowledgeGraphInner({
                                   className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
                                   onClick={() => handleDeleteEdge(edge.id)}
                                   disabled={isPending}
+                                  aria-label={`Remove manual link to ${other.title}`}
                                 >
-                                  {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2Off className="h-3 w-3" />}
+                                  {isPending ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : <Link2Off className="h-3 w-3" aria-hidden="true" />}
                                 </Button>
                               </div>
                             )
@@ -696,8 +702,8 @@ function KnowledgeGraphInner({
                   </section>
 
                   <Button variant="outline" className="w-full gap-2 border-border/50" asChild>
-                    <a href={selectedDBNode.url} target="_blank" rel="noreferrer">
-                      Open Original Page <ExternalLink className="h-4 w-4" />
+                    <a href={selectedDBNode.url} target="_blank" rel="noreferrer" aria-label={`Open original page: ${selectedDBNode.title} (opens in new tab)`}>
+                      Open Original Page <ExternalLink className="h-4 w-4" aria-hidden="true" />
                     </a>
                   </Button>
                 </div>

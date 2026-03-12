@@ -99,7 +99,15 @@ export default function DashboardStats({ dueCount }: DashboardStatsProps) {
 
   return (
     <div className="border-b border-border/50 bg-background/60 backdrop-blur-sm">
-      <div className={cn('grid gap-3 px-6 py-3 stagger-children', stats.length > 4 ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4')}>
+      {/* Mobile: horizontal scroll; Desktop: grid */}
+      <div className="flex gap-3 overflow-x-auto px-4 py-3 scrollbar-none md:hidden">
+        {stats.map((stat) => (
+          <div key={stat.label} className="shrink-0 w-[160px]">
+            <StatCard {...stat} />
+          </div>
+        ))}
+      </div>
+      <div className={cn('hidden gap-3 px-6 py-3 stagger-children md:grid', stats.length > 4 ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4')}>
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}

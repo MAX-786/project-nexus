@@ -1,0 +1,43 @@
+{
+  "name": "Nexus — Your Second Brain",
+  "short_name": "Nexus",
+  "description": "AI-powered knowledge capture, automatic graph linking, and spaced repetition.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Feed",
+      "url": "/dashboard/feed",
+      "description": "View your knowledge feed"
+    },
+    {
+      "name": "Graph",
+      "url": "/dashboard/graph",
+      "description": "Explore your knowledge graph"
+    },
+    {
+      "name": "Review",
+      "url": "/dashboard/review",
+      "description": "Spaced repetition reviews"
+    }
+  ]
+}

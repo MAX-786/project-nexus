@@ -300,6 +300,7 @@
 
 .ptr-spinner {
   animation: ptr-spin 0.8s linear infinite;
+}
 /* ── 3-D card flip ─────────────────────────────────────────────────────────── */
 .review-flip-perspective {
   perspective: 1200px;

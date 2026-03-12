@@ -1,8 +1,8 @@
 'use client'
 
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useEffect } from 'react'
 
-import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
 import type { DBNode } from '@/lib/types'
 import { useNodesStore } from '@/stores/nodes-store'

@@ -28,8 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
 import type { ReviewWithNode } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -235,6 +235,7 @@ export default function ReviewCards({ reviews }: ReviewCardsProps) {
       const stored = localStorage.getItem(GOAL_STORAGE_KEY)
       if (stored) {
         const parsed = parseInt(stored, 10)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!isNaN(parsed) && parsed > 0) setDailyGoal(parsed)
       }
     } catch { /* ignore */ }

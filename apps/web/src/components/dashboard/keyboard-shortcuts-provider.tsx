@@ -1,10 +1,13 @@
 'use client'
 
-import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
-import { KeyboardShortcutsDialog } from './keyboard-shortcuts-dialog'
+import { Keyboard } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Keyboard } from 'lucide-react'
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
+
+import { KeyboardShortcutsDialog } from './keyboard-shortcuts-dialog'
+
 
 export function KeyboardShortcutsProvider() {
   const { shortcuts, showHelp, setShowHelp } = useKeyboardShortcuts()

@@ -2,8 +2,8 @@
 
 import dynamic from 'next/dynamic'
 
-import type { ReviewWithNode } from '@/lib/types'
 import ReviewLoading from '@/app/dashboard/review/loading'
+import type { ReviewWithNode } from '@/lib/types'
 
 // `ssr: false` must live in a Client Component.
 const ReviewCards = dynamic(() => import('./review-cards'), {

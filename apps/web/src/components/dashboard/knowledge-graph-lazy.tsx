@@ -2,8 +2,8 @@
 
 import dynamic from 'next/dynamic'
 
-import type { DBNode, DBEdge, DBEntity } from '@/lib/types'
 import GraphLoading from '@/app/dashboard/graph/loading'
+import type { DBNode, DBEdge, DBEntity } from '@/lib/types'
 
 // `ssr: false` must live in a Client Component.
 // Deferring the ReactFlow bundle keeps the initial JS payload lean.

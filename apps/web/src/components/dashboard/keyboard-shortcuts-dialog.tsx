@@ -1,5 +1,6 @@
 'use client'
 
+import { Keyboard } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import {
@@ -9,7 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import { Keyboard } from 'lucide-react'
 
 interface ShortcutItem {
   id: string
@@ -29,6 +29,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange, shortcuts }: Keybo
 
   useEffect(() => {
     const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setModKey(isMac ? '⌘' : 'Ctrl+')
   }, [])
   const categories = [

@@ -1,13 +1,15 @@
+import type { DBUserSettings } from '@nexus/shared'
 import { Brain, Rss, Network, GraduationCap, Sparkles, LogOut, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import CommandSearch from '@/components/dashboard/command-search'
-import { KeyboardShortcutsHint, KeyboardShortcutsProvider } from '@/components/dashboard/keyboard-shortcuts-provider'
 import DashboardStats from '@/components/dashboard/dashboard-stats'
+import { KeyboardShortcutsHint, KeyboardShortcutsProvider } from '@/components/dashboard/keyboard-shortcuts-provider'
 import MobileBottomNav from '@/components/dashboard/mobile-bottom-nav'
 import NavTab from '@/components/dashboard/nav-tab'
 import OnboardingDialog from '@/components/dashboard/onboarding-dialog'
+import { SettingsProvider } from '@/components/dashboard/settings-provider'
 import ThemeToggle from '@/components/dashboard/theme-toggle'
 import AuthProvider from '@/components/providers/auth-provider'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -15,8 +17,6 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createClient } from '@/utils/supabase/server'
-import { SettingsProvider } from '@/components/dashboard/settings-provider'
-import type { DBUserSettings } from '@nexus/shared'
 
 export default async function DashboardLayout({
   children,

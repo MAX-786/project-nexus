@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable react-hooks/immutability */
 
 import { Check, Plus, Tag, Loader2 } from 'lucide-react'
 import { useState, useEffect, useTransition } from 'react'

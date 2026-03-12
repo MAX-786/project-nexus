@@ -4,8 +4,8 @@ import { Rss, Network, GraduationCap, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-import { cn } from '@/lib/utils'
 import { haptic } from '@/lib/haptics'
+import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard/feed', icon: Rss, label: 'Feed' },

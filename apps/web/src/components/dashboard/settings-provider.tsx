@@ -1,7 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useState, useTransition } from 'react'
 import type { DBUserSettings } from '@nexus/shared'
+import React, { createContext, useContext, useState, useTransition } from 'react'
+
 import { updateUserSettings } from '@/app/dashboard/settings/shortcut-actions'
 
 interface SettingsContextValue {

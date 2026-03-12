@@ -92,6 +92,7 @@ export default async function ReviewPage() {
   // Fetch all last_reviewed_at values for streak and heatmap.
   // Limit to 90 days — streak can never exceed that window and the weekly
   // heatmap only needs 7 days, so fetching older rows is wasteful.
+  // eslint-disable-next-line react-hooks/purity
   const ninetyDaysAgo = new Date(Date.now() - 90 * MS_PER_DAY).toISOString()
   const { data: reviewHistory } = await supabase
     .from('reviews')

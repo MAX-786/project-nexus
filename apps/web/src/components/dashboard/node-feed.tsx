@@ -1,17 +1,29 @@
 'use client'
 
-import { useState, useRef, useTransition, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState, useRef, useTransition, useCallback, useEffect } from 'react'
 
 
 import '@xyflow/react/dist/style.css'
 
 import { toast } from 'sonner'
+
 import { deleteNode, getNodeDetail, batchDeleteNodes, toggleBookmark } from '@/app/dashboard/feed/actions'
 import { updateNode } from '@/app/dashboard/graph/actions'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +39,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
+
 import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   ReactFlow,
@@ -61,17 +74,7 @@ import {
   ArrowUpDown,
   Calendar,
 } from 'lucide-react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Checkbox } from '@/components/ui/checkbox'
+
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { DBNode, DBEntity, DBCollection, DBTag } from '@/lib/types'
@@ -367,7 +370,7 @@ export default function NodeFeed() {
       setSelectedNodeId(null)
       cancelEditing()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [setSelectedNodeId])
 
   const nodeEntities = (nodeId: string) => entities.filter((e) => e.node_id === nodeId)
@@ -487,6 +490,7 @@ export default function NodeFeed() {
 
   // Virtualized list
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: displayNodes.length,
     getScrollElement: () => scrollContainerRef.current,
@@ -760,6 +764,7 @@ export default function NodeFeed() {
                             </CardTitle>
                             <CardDescription className="mt-1.5 flex items-center gap-1.5 text-xs">
                               {getFaviconUrl(node.url) && (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={getFaviconUrl(node.url)}
                                   alt=""

@@ -2,8 +2,8 @@
 
 import { useRef, useEffect } from 'react'
 
-import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
 import { useRealtimeNodes } from '@/hooks/use-realtime-nodes'
+import type { DBNode, DBEntity, DBEdge } from '@/lib/types'
 import { useAuthStore } from '@/stores/auth-store'
 import { useNodesStore } from '@/stores/nodes-store'
 

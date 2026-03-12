@@ -2,8 +2,8 @@
 
 import dynamic from 'next/dynamic'
 
-import type { DBConsolidation, DBNode } from '@/lib/types'
 import MemoryLoading from '@/app/dashboard/memory/loading'
+import type { DBConsolidation, DBNode } from '@/lib/types'
 
 // `ssr: false` must live in a Client Component.
 type NodePreview = Pick<DBNode, 'id' | 'title' | 'summary' | 'created_at'>

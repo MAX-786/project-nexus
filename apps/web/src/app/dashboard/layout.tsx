@@ -163,10 +163,8 @@ export default async function DashboardLayout({
           <DashboardStats dueCount={dueCount ?? 0} />
 
           {/* Main Content — extra bottom padding on mobile for the fixed bottom nav */}
-          <main className="flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)] md:pb-0">
-            <div className="h-full pb-16 md:pb-0">
-              {children}
-            </div>
+          <main className="flex-1 overflow-hidden pb-16 md:pb-0">
+            {children}
           </main>
 
           {/* Mobile Bottom Tab Navigation */}

@@ -231,6 +231,10 @@ CREATE POLICY "Users can delete own consolidations" ON public.consolidations FOR
 CREATE INDEX consolidations_user_id_idx ON public.consolidations (user_id);
 CREATE INDEX consolidations_created_at_idx ON public.consolidations (created_at DESC);
 
+-- Allow users to delete their own profile from the public.users table
+CREATE POLICY "Users can delete own profile" ON public.users
+  FOR DELETE USING (auth.uid() = id);
+
 -- ============================================================================
 -- MIGRATION: Run these statements on an EXISTING database to add new columns.
 -- Skip if creating tables fresh (the above CREATE TABLE statements already include them).

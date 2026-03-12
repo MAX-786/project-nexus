@@ -42,6 +42,8 @@ export interface ReviewWithNode {
   ease_factor: number
   last_reviewed_at: string | null
   node: Pick<DBNode, 'id' | 'title' | 'summary' | 'url'>
+  /** AI-extracted entity tags for the linked node */
+  tags?: { name: string; type: string }[]
 }
 
 export interface DBCollection {

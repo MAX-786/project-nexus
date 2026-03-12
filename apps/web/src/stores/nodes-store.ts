@@ -15,6 +15,9 @@ interface NodesState {
   /** Bulk-hydrate from server data */
   hydrate: (data: { nodes: DBNode[]; entities: DBEntity[]; edges: DBEdge[] }) => void
 
+  /** Optimistically add a new node (e.g. from a realtime INSERT) */
+  addNode: (node: DBNode) => void
+
   /** Optimistically remove a node (and its related entities/edges) */
   removeNode: (nodeId: string) => void
 
@@ -36,6 +39,14 @@ export const useNodesStore = create<NodesState>()((set) => ({
 
   hydrate: ({ nodes, entities, edges }) =>
     set({ nodes, entities, edges }),
+
+  addNode: (node) =>
+    set((state) => ({
+      // Prepend so newest-first order is preserved; skip duplicates.
+      nodes: state.nodes.some((n) => n.id === node.id)
+        ? state.nodes
+        : [node, ...state.nodes],
+    })),
 
   removeNode: (nodeId) =>
     set((state) => ({

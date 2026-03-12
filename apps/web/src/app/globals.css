@@ -322,7 +322,7 @@ textarea:focus-visible,
 [role="option"]:focus-visible,
 [role="checkbox"]:focus-visible,
 [role="switch"]:focus-visible,
-[tabindex]:focus-visible {
+[tabindex="0"]:focus-visible {
   outline: 2px solid oklch(0.637 0.237 275);
   outline-offset: 2px;
   border-radius: var(--radius-sm);

@@ -305,7 +305,6 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
                          })
                       }}
                       placeholder={shortcut.defaultKey}
-                      aria-label={`Key binding for: ${shortcut.description}`}
                     />
                   </div>
                 ))}

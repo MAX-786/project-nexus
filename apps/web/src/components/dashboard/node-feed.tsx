@@ -709,10 +709,7 @@ export default function NodeFeed() {
                               if (e.key === ' ' || e.key === 'Enter') {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                const newSet = new Set(selectedNodeIds)
-                                if (newSet.has(node.id)) newSet.delete(node.id)
-                                else newSet.add(node.id)
-                                setSelectedNodeIds(newSet)
+                                toggleSelection(e as unknown as React.MouseEvent, node.id)
                               }
                             }}
                           >
@@ -721,6 +718,7 @@ export default function NodeFeed() {
                               onCheckedChange={() => {}} // React handles this in onClick of wrapper
                               className="pointer-events-none data-[state=unchecked]:bg-muted data-[state=unchecked]:border-primary/50 hover:data-[state=unchecked]:bg-background/80"
                               aria-hidden="true"
+                              tabIndex={-1}
                             />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1159,28 +1157,31 @@ export default function NodeFeed() {
                       
                       {/* List of connections */}
                       <div className="space-y-2" role="list" aria-label="Connected nodes">
-                        {connectedNodes.map((cn) => (
-                          <div
-                            key={cn.id}
-                            className="flex items-center gap-3 rounded-lg bg-muted/50 border border-border/30 p-3 text-sm hover:border-primary/30 transition-colors cursor-pointer"
-                            onClick={() => setSelectedNodeId(cn.id)}
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`Open memory: ${cn.title}`}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault()
-                                setSelectedNodeId(cn.id)
-                              }
-                            }}
-                          >
-                            <div className="h-2 w-2 rounded-full bg-primary shrink-0" aria-hidden="true" />
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium truncate">{cn.title}</p>
-                              <p className="text-xs text-muted-foreground truncate">{getDomain(cn.url)}</p>
+                        {connectedNodes.map((cn) => {
+                          const handleSelectNode = () => setSelectedNodeId(cn.id)
+                          return (
+                            <div
+                              key={cn.id}
+                              className="flex items-center gap-3 rounded-lg bg-muted/50 border border-border/30 p-3 text-sm hover:border-primary/30 transition-colors cursor-pointer"
+                              onClick={handleSelectNode}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Open memory: ${cn.title}`}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  handleSelectNode()
+                                }
+                              }}
+                            >
+                              <div className="h-2 w-2 rounded-full bg-primary shrink-0" aria-hidden="true" />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium truncate">{cn.title}</p>
+                                <p className="text-xs text-muted-foreground truncate">{getDomain(cn.url)}</p>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   ) : (

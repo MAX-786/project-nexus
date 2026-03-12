@@ -1,7 +1,7 @@
 import { GraduationCap } from 'lucide-react'
 
 import { ReviewEmptyState } from '@/components/dashboard/empty-states'
-import ReviewCards from '@/components/dashboard/review-cards'
+import ReviewCardsLazy from '@/components/dashboard/review-cards-lazy'
 import ReviewStreak from '@/components/dashboard/review-streak'
 import type { ReviewWithNode } from '@/lib/types'
 import { createClient } from '@/utils/supabase/server'
@@ -89,12 +89,16 @@ export default async function ReviewPage() {
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
 
-  // Fetch all last_reviewed_at values for streak and heatmap
+  // Fetch all last_reviewed_at values for streak and heatmap.
+  // Limit to 90 days — streak can never exceed that window and the weekly
+  // heatmap only needs 7 days, so fetching older rows is wasteful.
+  const ninetyDaysAgo = new Date(Date.now() - 90 * MS_PER_DAY).toISOString()
   const { data: reviewHistory } = await supabase
     .from('reviews')
     .select('last_reviewed_at')
     .eq('user_id', user.id)
     .not('last_reviewed_at', 'is', null)
+    .gte('last_reviewed_at', ninetyDaysAgo)
     .order('last_reviewed_at', { ascending: false })
 
   const reviewDates = (reviewHistory ?? []).map(
@@ -137,7 +141,7 @@ export default async function ReviewPage() {
         {reviews.length === 0 ? (
           <ReviewEmptyState hasAnyReviews={(totalCount ?? 0) > 0} />
         ) : (
-          <ReviewCards reviews={reviews} />
+          <ReviewCardsLazy reviews={reviews} />
         )}
       </div>
     </div>

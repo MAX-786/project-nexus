@@ -1,7 +1,7 @@
 import { Sparkles } from 'lucide-react'
 
 import { MemoryEmptyState } from '@/components/dashboard/empty-states'
-import MemoryClient from '@/components/dashboard/memory-client'
+import MemoryClientLazy from '@/components/dashboard/memory-client-lazy'
 import type { DBConsolidation, DBNode } from '@/lib/types'
 import { createClient } from '@/utils/supabase/server'
 
@@ -67,7 +67,7 @@ export default async function MemoryPage() {
           <MemoryEmptyState hasNodes={false} />
         </div>
       ) : (
-        <MemoryClient
+        <MemoryClientLazy
           consolidations={consolidations}
           nodes={nodes}
           unconsolidatedCount={unconsolidatedNodes.length}

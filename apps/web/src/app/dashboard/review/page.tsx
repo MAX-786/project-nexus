@@ -108,10 +108,33 @@ export default async function ReviewPage() {
   const weeklyActivity = computeWeeklyActivity(reviewDates)
   const totalReviewed = reviewDates.length
 
-  const reviews: ReviewWithNode[] = (dueReviews ?? []).map((r: Record<string, unknown>) => ({
+  const rawReviews = (dueReviews ?? []).map((r: Record<string, unknown>) => ({
     ...r,
     node: Array.isArray(r.node) ? r.node[0] : r.node,
   })) as ReviewWithNode[]
+
+  // Fetch entity tags for each due node (batch query)
+  let reviews: ReviewWithNode[] = rawReviews
+  if (rawReviews.length > 0) {
+    const nodeIds = rawReviews.map((r) => r.node_id)
+    const { data: entitiesData } = await supabase
+      .from('entities')
+      .select('node_id, name, type')
+      .in('node_id', nodeIds)
+      .limit(200)
+
+    if (entitiesData && entitiesData.length > 0) {
+      const entityMap: Record<string, { name: string; type: string }[]> = {}
+      for (const e of entitiesData as { node_id: string; name: string; type: string }[]) {
+        if (!entityMap[e.node_id]) entityMap[e.node_id] = []
+        entityMap[e.node_id].push({ name: e.name, type: e.type })
+      }
+      reviews = rawReviews.map((r) => ({
+        ...r,
+        tags: entityMap[r.node_id] ?? [],
+      }))
+    }
+  }
 
   return (
     <div className="flex h-full flex-col">

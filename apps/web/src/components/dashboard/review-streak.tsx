@@ -38,7 +38,7 @@ export default function ReviewStreak({
         <Flame
           className={cn(
             'h-5 w-5',
-            streak > 0 ? 'text-orange-400' : 'text-muted-foreground',
+            streak > 0 ? 'text-orange-400 animate-nexus-flame' : 'text-muted-foreground',
           )}
         />
         <div>

@@ -20,20 +20,24 @@ interface StatCardProps {
 
 function StatCard({ icon, label, value, gradient, subtitle }: StatCardProps) {
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
+    <div
+      className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
+      role="listitem"
+    >
       <div
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${gradient} shadow-sm`}
+        aria-hidden="true"
       >
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-xl font-bold tracking-tight animate-nexus-fade-in">
+        <p className="text-xl font-bold tracking-tight animate-nexus-fade-in" aria-label={`${value.toLocaleString()} ${label}`}>
           {value.toLocaleString()}
         </p>
         <p className="text-xs text-muted-foreground truncate">{label}</p>
         {subtitle && (
           <p className="text-[10px] text-muted-foreground/70 truncate flex items-center gap-0.5">
-            <TrendingUp className="h-2.5 w-2.5" />
+            <TrendingUp className="h-2.5 w-2.5" aria-hidden="true" />
             {subtitle}
           </p>
         )}
@@ -98,7 +102,7 @@ export default function DashboardStats({ dueCount }: DashboardStatsProps) {
   }
 
   return (
-    <div className="border-b border-border/50 bg-background/60 backdrop-blur-sm">
+    <div className="border-b border-border/50 bg-background/60 backdrop-blur-sm" role="region" aria-label="Dashboard statistics">
       {/* Mobile: horizontal scroll; Desktop: grid */}
       <div className="flex gap-3 overflow-x-auto px-4 py-3 scrollbar-none md:hidden">
         {stats.map((stat) => (
@@ -107,7 +111,7 @@ export default function DashboardStats({ dueCount }: DashboardStatsProps) {
           </div>
         ))}
       </div>
-      <div className={cn('hidden gap-3 px-6 py-3 stagger-children md:grid', stats.length > 4 ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4')}>
+      <div className={cn('hidden gap-3 px-6 py-3 stagger-children md:grid', stats.length > 4 ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4')} role="list" aria-label="Key metrics">
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}

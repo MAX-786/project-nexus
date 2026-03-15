@@ -6,9 +6,8 @@ import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
 import { deleteAccount } from '@/app/dashboard/settings/actions'
-import { Button } from '@/components/ui/button'
 import { useSettings } from '@/components/dashboard/settings-provider'
-import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import {
   useMemorySettings,
   DEFAULT_MODELS,

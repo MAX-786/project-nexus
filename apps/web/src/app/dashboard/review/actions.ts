@@ -81,3 +81,36 @@ export async function submitReview(reviewId: string, rating: number) {
   revalidatePath('/dashboard/review')
   return { success: true, nextInterval: newInterval }
 }
+
+// Snooze: defer a card's next review by 1 hour or 1 day without counting as reviewed
+export async function snoozeReview(reviewId: string, duration: '1h' | '1d') {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Not authenticated' }
+  }
+
+  const msMap: Record<string, number> = {
+    '1h': 60 * 60 * 1000,
+    '1d': 24 * 60 * 60 * 1000,
+  }
+
+  const nextReviewDate = new Date(Date.now() + msMap[duration])
+
+  const { error } = await supabase
+    .from('reviews')
+    .update({ next_review_date: nextReviewDate.toISOString() })
+    .eq('id', reviewId)
+    .eq('user_id', user.id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/dashboard/review')
+  return { success: true }
+}

@@ -1,8 +1,9 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-import { createClient } from '@/utils/supabase/server'
 import type { DBUserSettings } from '@nexus/shared'
+import { revalidatePath } from 'next/cache'
+
+import { createClient } from '@/utils/supabase/server'
 
 export async function updateUserSettings(
   settings: Partial<Pick<DBUserSettings, 'shortcuts_enabled' | 'custom_shortcuts'>>

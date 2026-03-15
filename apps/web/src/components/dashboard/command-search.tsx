@@ -152,16 +152,18 @@ export default function CommandSearch() {
 
   return (
     <>
-      {/* Trigger Button */}
+      {/* Trigger Button — icon-only on mobile, full bar on desktop */}
       <button
         type="button"
         id="command-search-trigger"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-all duration-200 hover:bg-muted hover:border-border hover:text-foreground min-w-[200px]"
+        aria-label="Search knowledge base"
+        className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/50 text-muted-foreground transition-all duration-200 hover:bg-muted hover:border-border hover:text-foreground
+          px-2 py-1.5 md:px-3 md:min-w-[200px]"
       >
-        <Search className="h-3.5 w-3.5 shrink-0" />
-        <span className="flex-1 text-left">Search…</span>
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border border-border/80 bg-background/80 px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex">
+        <Search className="h-4 w-4 shrink-0 md:h-3.5 md:w-3.5" />
+        <span className="hidden md:block flex-1 text-left text-sm">Search…</span>
+        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border border-border/80 bg-background/80 px-1.5 font-mono text-[10px] font-medium text-muted-foreground md:inline-flex">
           <span className="text-xs">⌘</span>K
         </kbd>
       </button>

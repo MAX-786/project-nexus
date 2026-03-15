@@ -1,17 +1,22 @@
+import type { DBUserSettings } from '@nexus/shared'
 import { Brain, Rss, Network, GraduationCap, Sparkles, LogOut, Settings, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import CommandSearch from '@/components/dashboard/command-search'
-import { KeyboardShortcutsHint, KeyboardShortcutsProvider } from '@/components/dashboard/keyboard-shortcuts-provider'
 import DashboardStats from '@/components/dashboard/dashboard-stats'
+import { KeyboardShortcutsHint, KeyboardShortcutsProvider } from '@/components/dashboard/keyboard-shortcuts-provider'
+import MobileBottomNav from '@/components/dashboard/mobile-bottom-nav'
 import NavTab from '@/components/dashboard/nav-tab'
 import OnboardingDialog from '@/components/dashboard/onboarding-dialog'
+import { SettingsProvider } from '@/components/dashboard/settings-provider'
 import ThemeToggle from '@/components/dashboard/theme-toggle'
 import AuthProvider from '@/components/providers/auth-provider'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { createClient } from '@/utils/supabase/server'
 import {
   Sheet,
   SheetContent,
@@ -19,10 +24,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { createClient } from '@/utils/supabase/server'
-import { SettingsProvider } from '@/components/dashboard/settings-provider'
-import type { DBUserSettings } from '@nexus/shared'
 
 export default async function DashboardLayout({
   children,
@@ -156,14 +157,14 @@ export default async function DashboardLayout({
               </nav>
             </div>
 
-            {/* Desktop Actions */}
-            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-              {/* Global Search — Cmd+K command palette */}
-              <CommandSearch />
+              {/* Header Actions */}
+              <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                {/* Global Search — Cmd+K command palette */}
+                <CommandSearch />
 
-              <div className="hidden md:flex items-center gap-3">
-                <ThemeToggle />
-                <KeyboardShortcutsHint />
+                <div className="hidden md:flex items-center gap-3">
+                  <ThemeToggle />
+                  <KeyboardShortcutsHint />
 
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -194,26 +195,47 @@ export default async function DashboardLayout({
 
                 <Separator orientation="vertical" className="h-5" aria-hidden="true" />
 
-                <form action="/auth/signout" method="post">
+                  <form action="/auth/signout" method="post">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Sign out of Nexus">
+                          <LogOut className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">Sign out</TooltipContent>
+                    </Tooltip>
+                  </form>
+                </div>
+
+                {/* Mobile: settings link */}
+                <div className="md:hidden flex items-center gap-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" aria-label="Sign out of Nexus">
-                        <LogOut className="h-4 w-4" aria-hidden="true" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+                        <Link href="/dashboard/settings">
+                          <Settings className="h-4 w-4" />
+                          <span className="sr-only">Settings</span>
+                        </Link>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Sign out</TooltipContent>
+                    <TooltipContent side="bottom">Settings</TooltipContent>
                   </Tooltip>
-                </form>
+                </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Stats Bar */}
-        <DashboardStats dueCount={dueCount ?? 0} />
+          {/* Stats Bar */}
+          <DashboardStats dueCount={dueCount ?? 0} />
 
-          {/* Main Content */}
-          <main id="main-content" className="flex-1 overflow-hidden" tabIndex={-1}>{children}</main>
+          {/* Main Content — extra bottom padding on mobile for the fixed bottom nav */}
+          <main id="main-content" className="flex-1 overflow-hidden pb-16 md:pb-0" tabIndex={-1}>
+            {children}
+          </main>
+
+          {/* Mobile Bottom Tab Navigation */}
+          <MobileBottomNav />
+
           <OnboardingDialog />
           <KeyboardShortcutsProvider />
         </div>

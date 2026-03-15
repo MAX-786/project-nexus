@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable react-hooks/preserve-manual-memoization */
 
 import {
   ReactFlow,

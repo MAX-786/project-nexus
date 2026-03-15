@@ -1,4 +1,4 @@
-import KnowledgeGraph from '@/components/dashboard/knowledge-graph'
+import KnowledgeGraphLazy from '@/components/dashboard/knowledge-graph-lazy'
 import type { DBNode, DBEdge, DBEntity } from '@/lib/types'
 import { createClient } from '@/utils/supabase/server'
 
@@ -18,7 +18,7 @@ export default async function GraphPage() {
   ])
 
   return (
-    <KnowledgeGraph
+    <KnowledgeGraphLazy
       initialNodes={(nodesResult.data ?? []) as DBNode[]}
       initialEdges={(edgesResult.data ?? []) as DBEdge[]}
       initialEntities={(entitiesResult.data ?? []) as DBEntity[]}

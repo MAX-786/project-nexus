@@ -1,14 +1,16 @@
 'use client'
 
+import type { DBHighlight } from '@nexus/shared'
+import { Highlighter, Plus, MessageSquare } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
+
+import { getHighlights, createHighlight, deleteHighlight, updateHighlightNote } from '@/app/dashboard/feed/actions'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent } from '@/components/ui/card'
-import { Highlighter, Plus, MessageSquare } from 'lucide-react'
-import { getHighlights, createHighlight, deleteHighlight, updateHighlightNote } from '@/app/dashboard/feed/actions'
-import type { DBHighlight } from '@nexus/shared'
+
 
 const HIGHLIGHT_COLORS = [
   { value: '#fbbf24', label: 'Yellow' },
@@ -41,6 +43,7 @@ export function HighlightsPanel({ nodeId }: HighlightsPanelProps) {
   }, [nodeId])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadHighlights()
   }, [loadHighlights])
 

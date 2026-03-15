@@ -132,6 +132,8 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Prevent horizontal overflow on all screen sizes */
+    overflow-x: hidden;
   }
 }
 
@@ -185,23 +187,47 @@
 }
 
 @keyframes nexus-float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 @keyframes nexus-orbit {
-  from { transform: rotate(0deg) translateX(40px) rotate(0deg); }
-  to { transform: rotate(360deg) translateX(40px) rotate(-360deg); }
+  from {
+    transform: rotate(0deg) translateX(40px) rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg) translateX(40px) rotate(-360deg);
+  }
 }
 
 @keyframes nexus-gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 @keyframes nexus-spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-nexus-float {
@@ -280,6 +306,118 @@
   animation-delay: 450ms;
 }
 
+/* Hide scrollbar while keeping scroll functionality */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Pull-to-refresh indicator */
+@keyframes ptr-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ptr-spinner {
+  animation: ptr-spin 0.8s linear infinite;
+}
+
+/* ── 3-D card flip ─────────────────────────────────────────────────────────── */
+.review-flip-perspective {
+  perspective: 1200px;
+}
+
+.review-flip-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.review-flip-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.review-flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.review-flip-back {
+  transform: rotateY(180deg);
+  position: absolute;
+  inset: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-flip-inner {
+    transition: none;
+  }
+}
+
+/* ── Celebration / confetti ────────────────────────────────────────────────── */
+@keyframes nexus-celebrate {
+  0% {
+    transform: scale(0) rotate(-15deg);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.15) rotate(4deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-nexus-celebrate {
+  animation: nexus-celebrate 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes nexus-confetti {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(90px) rotate(540deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.animate-nexus-confetti {
+  animation: nexus-confetti 0.9s ease-out forwards;
+}
+
+/* ── Flame pulse for active streak ─────────────────────────────────────────── */
+@keyframes nexus-flame-pulse {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 3px oklch(0.75 0.18 40 / 60%));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 8px oklch(0.75 0.18 40 / 90%));
+  }
+}
+
+.animate-nexus-flame {
+  animation: nexus-flame-pulse 1.4s ease-in-out infinite;
+}
+
 /* ── Accessibility ──────────────────────────────────────────── */
 
 /* Skip navigation link */
@@ -353,6 +491,7 @@ textarea:focus-visible,
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -376,7 +515,7 @@ textarea:focus-visible,
     animation: none !important;
   }
 
-  .stagger-children > * {
+  .stagger-children>* {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

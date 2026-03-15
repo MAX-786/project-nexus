@@ -1,16 +1,29 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useState, useRef, useTransition, useCallback, useEffect } from 'react'
 
 
 import '@xyflow/react/dist/style.css'
 
 import { toast } from 'sonner'
+
 import { deleteNode, getNodeDetail, batchDeleteNodes, toggleBookmark } from '@/app/dashboard/feed/actions'
 import { updateNode } from '@/app/dashboard/graph/actions'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +39,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
+
 import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   ReactFlow,
@@ -60,17 +74,7 @@ import {
   ArrowUpDown,
   Calendar,
 } from 'lucide-react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Checkbox } from '@/components/ui/checkbox'
+
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { DBNode, DBEntity, DBCollection, DBTag } from '@/lib/types'
@@ -230,6 +234,7 @@ function exportAllAsCSV(nodes: DBNode[], entities: DBEntity[]) {
 // ---- Component ----
 
 export default function NodeFeed() {
+  const router = useRouter()
   const nodes = useNodesStore((s) => s.nodes)
   const entities = useNodesStore((s) => s.entities)
   const edges = useNodesStore((s) => s.edges)
@@ -365,7 +370,7 @@ export default function NodeFeed() {
       setSelectedNodeId(null)
       cancelEditing()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [setSelectedNodeId])
 
   const nodeEntities = (nodeId: string) => entities.filter((e) => e.node_id === nodeId)
@@ -476,8 +481,16 @@ export default function NodeFeed() {
     return result
   })()
 
+  // Pull-to-refresh state (mobile)
+  const [isPulling, setIsPulling] = useState(false)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const touchStartYRef = useRef(0)
+  const PULL_THRESHOLD = 72
+
   // Virtualized list
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: displayNodes.length,
     getScrollElement: () => scrollContainerRef.current,
@@ -641,7 +654,52 @@ export default function NodeFeed() {
       </div>
 
       {/* Virtualized scrollable card list */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0 relative" role="region" aria-label="Knowledge memories list">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto min-h-0 relative" role="region" aria-label="Knowledge memories list"
+        onTouchStart={(e) => {
+          if (scrollContainerRef.current?.scrollTop === 0) {
+            touchStartYRef.current = e.touches[0].clientY
+          }
+        }}
+        onTouchMove={(e) => {
+          if (isRefreshing) return
+          const scrollTop = scrollContainerRef.current?.scrollTop ?? 1
+          if (scrollTop > 0) return
+          const delta = e.touches[0].clientY - touchStartYRef.current
+          if (delta > 0) {
+            setIsPulling(true)
+            setPullDistance(Math.min(delta * 0.5, PULL_THRESHOLD + 20))
+          }
+        }}
+        onTouchEnd={() => {
+          if (pullDistance >= PULL_THRESHOLD && !isRefreshing) {
+            setIsRefreshing(true)
+            setPullDistance(0)
+            setIsPulling(false)
+            router.refresh()
+            setTimeout(() => setIsRefreshing(false), 1200)
+          } else {
+            setIsPulling(false)
+            setPullDistance(0)
+          }
+        }}
+      >
+        {/* Pull-to-refresh indicator */}
+        {(isPulling || isRefreshing) && (
+          <div
+            className="absolute top-0 inset-x-0 flex items-center justify-center transition-transform z-10 pointer-events-none"
+            style={{ height: `${pullDistance || (isRefreshing ? 48 : 0)}px` }}
+          >
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-sm border border-border/50">
+              <Loader2
+                className={`h-3.5 w-3.5 ${isRefreshing ? 'ptr-spinner' : ''}`}
+                style={!isRefreshing ? { transform: `rotate(${(pullDistance / PULL_THRESHOLD) * 360}deg)` } : undefined}
+              />
+              <span>{isRefreshing ? 'Refreshing…' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}</span>
+            </div>
+          </div>
+        )}
         {displayNodes.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16" role="status">
             <Search className="h-8 w-8 text-muted-foreground mb-3" aria-hidden="true" />
@@ -727,6 +785,7 @@ export default function NodeFeed() {
                             </CardTitle>
                             <CardDescription className="mt-1.5 flex items-center gap-1.5 text-xs">
                               {getFaviconUrl(node.url) && (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={getFaviconUrl(node.url)}
                                   alt=""
@@ -951,7 +1010,7 @@ export default function NodeFeed() {
 
       {/* Single Sheet for node details */}
       <Sheet open={!!selectedNodeId} onOpenChange={handleSheetChange}>
-        <SheetContent className="w-[520px] sm:max-w-xl overflow-y-auto bg-background/95 backdrop-blur-xl border-border/50">
+        <SheetContent className="w-full sm:w-[520px] sm:max-w-xl overflow-y-auto bg-background/95 backdrop-blur-xl border-border/50">
           {selectedNode && (
             <>
               <SheetHeader className="mb-6 space-y-3">

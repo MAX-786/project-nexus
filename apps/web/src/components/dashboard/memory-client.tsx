@@ -19,13 +19,18 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 
+import {
+  deleteConsolidation,
+  clearConsolidations,
+  saveConsolidation,
+  getUnconsolidatedNodes,
+} from '@/app/dashboard/memory/actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { cn } from '@/lib/utils'
 import { callMemoryAgent } from '@/lib/memory-agent'
 import {
   useMemorySettings,
@@ -33,13 +38,8 @@ import {
   DEFAULT_MODELS,
 } from '@/lib/memory-settings'
 import type { DBConsolidation, DBNode } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
-import {
-  deleteConsolidation,
-  clearConsolidations,
-  saveConsolidation,
-  getUnconsolidatedNodes,
-} from '@/app/dashboard/memory/actions'
 import { MemoryEmptyState } from './empty-states'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -719,6 +719,7 @@ function InsightCard({
   const [date, setDate] = useState('')
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDate(
       new Date(consolidation.created_at).toLocaleDateString(undefined, {
         month: 'short',

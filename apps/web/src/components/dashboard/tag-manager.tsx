@@ -1,10 +1,13 @@
 'use client'
 
+import type { DBTag } from '@nexus/shared'
+import { Plus, X, Tags } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+
+import { getTags, createTag, deleteTag, addTagToNodes, removeTagFromNode, getNodeTags } from '@/app/dashboard/feed/actions'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -12,9 +15,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Plus, X, Tags } from 'lucide-react'
-import { getTags, createTag, deleteTag, addTagToNodes, removeTagFromNode, getNodeTags } from '@/app/dashboard/feed/actions'
-import type { DBTag } from '@nexus/shared'
+import { Input } from '@/components/ui/input'
+
 
 const TAG_COLORS = [
   '#6366f1', // indigo
@@ -48,6 +50,7 @@ export function TagManager({ nodeIds, onTagsChanged, trigger }: TagManagerProps)
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open) loadData()
   }, [open, loadData])
 

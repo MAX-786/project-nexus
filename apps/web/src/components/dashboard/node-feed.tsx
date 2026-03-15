@@ -512,10 +512,10 @@ export default function NodeFeed() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
               <h2 className="text-lg font-semibold">Knowledge Feed</h2>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1" aria-live="polite" aria-atomic="true">
               {nodes.length} {nodes.length === 1 ? 'memory' : 'memories'} captured
               {searchQuery && ` · ${filteredNodes.length} matching search`}
               {selectedCollection && ` · filtered by ${selectedCollection.name}`}
@@ -530,18 +530,20 @@ export default function NodeFeed() {
               size="sm"
               onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
               className="gap-1.5"
+              aria-pressed={showBookmarksOnly}
+              aria-label={showBookmarksOnly ? "Hide bookmarks filter" : "Show bookmarks only"}
             >
-              <Star className={`h-3.5 w-3.5 ${showBookmarksOnly ? 'fill-current' : ''}`} />
+              <Star className={`h-3.5 w-3.5 ${showBookmarksOnly ? 'fill-current' : ''}`} aria-hidden="true" />
               <span className="hidden sm:inline">Bookmarks</span>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
-                  <Filter className="h-3.5 w-3.5" /> 
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" aria-label={`Filter by collection: ${selectedCollection ? selectedCollection.name : 'All collections'}`}>
+                  <Filter className="h-3.5 w-3.5" aria-hidden="true" />
                   <span className="max-w-[100px] truncate">
                     {selectedCollection ? selectedCollection.name : 'Collections'}
                   </span>
-                  <ChevronDown className="h-3 w-3 opacity-50" />
+                  <ChevronDown className="h-3 w-3 opacity-50" aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[180px]">
@@ -558,7 +560,7 @@ export default function NodeFeed() {
                     onClick={() => setSelectedCollectionId(c.id)}
                     className={c.id === selectedCollectionId ? 'bg-primary/10 text-primary font-medium flex items-center gap-2' : 'flex items-center gap-2'}
                   >
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color || '#64748b' }} />
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color || '#64748b' }} aria-hidden="true" />
                     <span className="truncate">{c.name}</span>
                   </DropdownMenuItem>
                 ))}
@@ -568,8 +570,8 @@ export default function NodeFeed() {
             {tags.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant={selectedTagId ? "default" : "outline"} size="sm" className="gap-1.5">
-                    <Tags className="h-3.5 w-3.5" />
+                  <Button variant={selectedTagId ? "default" : "outline"} size="sm" className="gap-1.5" aria-label={`Filter by tag: ${selectedTagId ? tags.find(t => t.id === selectedTagId)?.name : 'All tags'}`}>
+                    <Tags className="h-3.5 w-3.5" aria-hidden="true" />
                     <span className="hidden sm:inline">
                       {selectedTagId ? tags.find(t => t.id === selectedTagId)?.name : 'Tags'}
                     </span>
@@ -581,7 +583,7 @@ export default function NodeFeed() {
                   </DropdownMenuItem>
                   {tags.map(tag => (
                     <DropdownMenuItem key={tag.id} onClick={() => setSelectedTagId(tag.id)}>
-                      <span className="h-2 w-2 rounded-full mr-2" style={{ backgroundColor: tag.color }} />
+                      <span className="h-2 w-2 rounded-full mr-2" style={{ backgroundColor: tag.color }} aria-hidden="true" />
                       {tag.name}
                     </DropdownMenuItem>
                   ))}
@@ -592,8 +594,8 @@ export default function NodeFeed() {
             {/* Date filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant={dateFilter !== 'all' ? "default" : "outline"} size="sm" className="gap-1.5">
-                  <Calendar className="h-3.5 w-3.5" />
+                <Button variant={dateFilter !== 'all' ? "default" : "outline"} size="sm" className="gap-1.5" aria-label={`Date filter: ${dateFilter === 'all' ? 'All time' : dateFilter === '7d' ? 'Last 7 days' : dateFilter === '30d' ? 'Last 30 days' : 'Last 90 days'}`}>
+                  <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
                   <span className="hidden sm:inline">
                     {dateFilter === 'all' ? 'All Time' : dateFilter === '7d' ? 'Last 7d' : dateFilter === '30d' ? 'Last 30d' : 'Last 90d'}
                   </span>
@@ -610,7 +612,7 @@ export default function NodeFeed() {
             {/* Sort */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
+                <Button variant="outline" size="sm" className="gap-1.5" aria-label={`Sort by: ${sortBy === 'newest' ? 'Newest first' : sortBy === 'oldest' ? 'Oldest first' : sortBy === 'most-connections' ? 'Most connections' : 'Most entities'}`}>
                   <ArrowUpDown className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">
                     {sortBy === 'newest' ? 'Newest' : sortBy === 'oldest' ? 'Oldest' : sortBy === 'most-connections' ? 'Connections' : 'Entities'}
@@ -632,16 +634,18 @@ export default function NodeFeed() {
                 size="sm"
                 className="gap-1.5 text-xs text-muted-foreground"
                 onClick={() => exportAllAsJSON(nodes, entities)}
+                aria-label="Export all memories as JSON"
               >
-                <Download className="h-3.5 w-3.5" /> JSON
+                <Download className="h-3.5 w-3.5" aria-hidden="true" /> JSON
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 text-xs text-muted-foreground"
                 onClick={() => exportAllAsCSV(nodes, entities)}
+                aria-label="Export all memories as CSV"
               >
-                <Download className="h-3.5 w-3.5" /> CSV
+                <Download className="h-3.5 w-3.5" aria-hidden="true" /> CSV
               </Button>
             </div>
           )}
@@ -652,7 +656,7 @@ export default function NodeFeed() {
       {/* Virtualized scrollable card list */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto min-h-0 relative"
+        className="flex-1 overflow-y-auto min-h-0 relative" role="region" aria-label="Knowledge memories list"
         onTouchStart={(e) => {
           if (scrollContainerRef.current?.scrollTop === 0) {
             touchStartYRef.current = e.touches[0].clientY
@@ -697,8 +701,8 @@ export default function NodeFeed() {
           </div>
         )}
         {displayNodes.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
-            <Search className="h-8 w-8 text-muted-foreground mb-3" />
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-16" role="status">
+            <Search className="h-8 w-8 text-muted-foreground mb-3" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">
               {getEmptyFilterMessage(searchQuery, showBookmarksOnly, dateFilter, selectedTagId)}
             </p>
@@ -707,6 +711,8 @@ export default function NodeFeed() {
           <div
             className="p-4 sm:p-6 relative w-full pb-24"
             style={{ height: virtualizer.getTotalSize() }}
+            role="list"
+            aria-label={`${displayNodes.length} memories`}
           >
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const node = displayNodes[virtualRow.index]
@@ -727,6 +733,7 @@ export default function NodeFeed() {
                     paddingLeft: 'inherit',
                     paddingRight: 'inherit',
                   }}
+                  role="listitem"
                 >
                   <Card
                     className={`group cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-[oklch(0.637_0.237_275/12%)] relative ${
@@ -740,6 +747,7 @@ export default function NodeFeed() {
                         setSelectedNodeId(node.id)
                       }
                     }}
+                    aria-label={`Memory: ${node.title}`}
                   >
                     <CardHeader className="pb-2 relative z-10">
                       <div className="flex items-start justify-between gap-4">
@@ -751,11 +759,24 @@ export default function NodeFeed() {
                                 : 'opacity-0 group-hover:opacity-100'
                             } hover:bg-primary/20 bg-background/50 backdrop-blur-sm`}
                             onClick={(e) => toggleSelection(e, node.id)}
+                            role="checkbox"
+                            aria-checked={selectedNodeIds.has(node.id)}
+                            aria-label={`Select memory: ${node.title}`}
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === ' ' || e.key === 'Enter') {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                toggleSelection(e as unknown as React.MouseEvent, node.id)
+                              }
+                            }}
                           >
                             <Checkbox 
                               checked={selectedNodeIds.has(node.id)} 
                               onCheckedChange={() => {}} // React handles this in onClick of wrapper
                               className="pointer-events-none data-[state=unchecked]:bg-muted data-[state=unchecked]:border-primary/50 hover:data-[state=unchecked]:bg-background/80"
+                              aria-hidden="true"
+                              tabIndex={-1}
                             />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -781,8 +802,8 @@ export default function NodeFeed() {
                         <div className="flex items-center gap-2 shrink-0">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground cursor-default">
-                                <Clock className="h-3 w-3" />
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground cursor-default" aria-label={`Captured ${formatDate(node.created_at)}`}>
+                                <Clock className="h-3 w-3" aria-hidden="true" />
                                 {formatRelativeTime(node.created_at)}
                               </span>
                             </TooltipTrigger>
@@ -798,8 +819,9 @@ export default function NodeFeed() {
                             }}
                             className="p-1 rounded-md hover:bg-muted transition-colors"
                             aria-label={node.is_bookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                            aria-pressed={node.is_bookmarked}
                           >
-                            <Star className={`h-3.5 w-3.5 ${node.is_bookmarked ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground hover:text-amber-400'} transition-colors`} />
+                            <Star className={`h-3.5 w-3.5 ${node.is_bookmarked ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground hover:text-amber-400'} transition-colors`} aria-hidden="true" />
                           </button>
                           <Button
                             variant="ghost"
@@ -807,12 +829,12 @@ export default function NodeFeed() {
                             className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                             onClick={(e) => handleDelete(node.id, e)}
                             disabled={isDeleting}
-                            title="Delete node"
+                            aria-label={`Delete memory: ${node.title}`}
                           >
                             {isDeleting ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                             ) : (
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                             )}
                           </Button>
                         </div>
@@ -833,11 +855,13 @@ export default function NodeFeed() {
                               e.stopPropagation()
                               setExpandedId(expandedId === node.id ? null : node.id)
                             }}
+                            aria-expanded={expandedId === node.id}
+                            aria-label={expandedId === node.id ? 'Show less summary' : 'Read more summary'}
                           >
                             {expandedId === node.id ? (
-                              <><ChevronUp className="h-3 w-3" /> Show less</>
+                              <><ChevronUp className="h-3 w-3" aria-hidden="true" /> Show less</>
                             ) : (
-                              <><ChevronDown className="h-3 w-3" /> Read more</>
+                              <><ChevronDown className="h-3 w-3" aria-hidden="true" /> Read more</>
                             )}
                           </button>
                         )}
@@ -849,16 +873,16 @@ export default function NodeFeed() {
                             variant="outline"
                             className={`text-xs px-2 py-0.5 ${getEntityColor(entity.type)}`}
                           >
-                            <Tag className="h-2.5 w-2.5 mr-1" />
+                            <Tag className="h-2.5 w-2.5 mr-1" aria-hidden="true" />
                             {entity.name}
                           </Badge>
                         ))}
                         {ne.length > 3 && (
-                          <span className="text-xs text-muted-foreground">+{ne.length - 3} more</span>
+                          <span className="text-xs text-muted-foreground" aria-label={`${ne.length - 3} more entities`}>+{ne.length - 3} more</span>
                         )}
                         {cc > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-                            <Network className="h-3 w-3" />
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto" aria-label={`${cc} connections`}>
+                            <Network className="h-3 w-3" aria-hidden="true" />
                             {cc}
                           </span>
                         )}
@@ -950,8 +974,9 @@ export default function NodeFeed() {
               size="icon" 
               className="rounded-full h-8 w-8 hover:bg-muted text-muted-foreground" 
               onClick={() => setSelectedNodeIds(new Set())}
+              aria-label="Clear selection"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -1007,13 +1032,14 @@ export default function NodeFeed() {
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1.5 text-primary hover:underline"
+                    aria-label={`Open source page: ${getDomain(selectedNode.url)} (opens in new tab)`}
                   >
-                    <LinkIcon className="h-3 w-3" />
+                    <LinkIcon className="h-3 w-3" aria-hidden="true" />
                     {getDomain(selectedNode.url)}
                   </a>
                   {selectedNode.created_at && (
                     <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <Clock className="h-3 w-3" aria-hidden="true" />
                       {formatDate(selectedNode.created_at)}
                     </span>
                   )}
@@ -1189,20 +1215,32 @@ export default function NodeFeed() {
                       </div>
                       
                       {/* List of connections */}
-                      <div className="space-y-2">
-                        {connectedNodes.map((cn) => (
-                          <div
-                            key={cn.id}
-                            className="flex items-center gap-3 rounded-lg bg-muted/50 border border-border/30 p-3 text-sm hover:border-primary/30 transition-colors cursor-pointer"
-                            onClick={() => setSelectedNodeId(cn.id)}
-                          >
-                            <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium truncate">{cn.title}</p>
-                              <p className="text-xs text-muted-foreground truncate">{getDomain(cn.url)}</p>
+                      <div className="space-y-2" role="list" aria-label="Connected nodes">
+                        {connectedNodes.map((cn) => {
+                          const handleSelectNode = () => setSelectedNodeId(cn.id)
+                          return (
+                            <div
+                              key={cn.id}
+                              className="flex items-center gap-3 rounded-lg bg-muted/50 border border-border/30 p-3 text-sm hover:border-primary/30 transition-colors cursor-pointer"
+                              onClick={handleSelectNode}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Open memory: ${cn.title}`}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  handleSelectNode()
+                                }
+                              }}
+                            >
+                              <div className="h-2 w-2 rounded-full bg-primary shrink-0" aria-hidden="true" />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium truncate">{cn.title}</p>
+                                <p className="text-xs text-muted-foreground truncate">{getDomain(cn.url)}</p>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   ) : (
@@ -1253,8 +1291,8 @@ export default function NodeFeed() {
                     Collection
                   </Button>
                   <Button variant="outline" className="flex-1 gap-2 border-border/50 hover:border-primary/30 min-w-[140px]" asChild>
-                    <a href={selectedNode.url} target="_blank" rel="noreferrer">
-                      Original Page <ExternalLink className="h-4 w-4" />
+                    <a href={selectedNode.url} target="_blank" rel="noreferrer" aria-label={`Open original page: ${selectedNode.title} (opens in new tab)`}>
+                      Original Page <ExternalLink className="h-4 w-4" aria-hidden="true" />
                     </a>
                   </Button>
                   <Button 
@@ -1288,11 +1326,12 @@ export default function NodeFeed() {
                     className="gap-2 border-border/50 text-destructive hover:bg-destructive/10 hover:border-destructive/30 shrink-0"
                     onClick={(e) => handleDelete(selectedNode.id, e)}
                     disabled={deletingId === selectedNode.id}
+                    aria-label={`Delete memory: ${selectedNode.title}`}
                   >
                     {deletingId === selectedNode.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     ) : (
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     )}
                   </Button>
                 </div>

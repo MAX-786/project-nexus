@@ -64,10 +64,10 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
   return (
     <div className="space-y-8">
       {/* Profile Section */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-base font-semibold text-foreground mb-4">Profile</h2>
+      <section className="rounded-xl border border-border bg-card p-6" aria-labelledby="profile-heading">
+        <h2 id="profile-heading" className="text-base font-semibold text-foreground mb-4">Profile</h2>
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted border border-border text-lg font-semibold text-muted-foreground">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted border border-border text-lg font-semibold text-muted-foreground" aria-hidden="true">
             {initials}
           </div>
           <div className="space-y-1">
@@ -80,12 +80,12 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
       </section>
 
       {/* Appearance Section */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-base font-semibold text-foreground mb-1">Appearance</h2>
+      <section className="rounded-xl border border-border bg-card p-6" aria-labelledby="appearance-heading">
+        <h2 id="appearance-heading" className="text-base font-semibold text-foreground mb-1">Appearance</h2>
         <p className="text-sm text-muted-foreground mb-4">
           Choose how Nexus looks to you.
         </p>
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="group" aria-label="Theme selection">
           {themeOptions.map(({ value, label, icon: Icon }) => (
             <Button
               key={value}
@@ -93,8 +93,10 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
               size="sm"
               onClick={() => setTheme(value)}
               className="flex items-center gap-2"
+              aria-pressed={theme === value}
+              aria-label={`${label} theme${theme === value ? ' (current)' : ''}`}
             >
-              <Icon className="h-3.5 w-3.5" />
+              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
               {label}
             </Button>
           ))}
@@ -102,10 +104,10 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
       </section>
 
       {/* Memory Agent Section */}
-      <section className="rounded-xl border border-border bg-card p-6">
+      <section className="rounded-xl border border-border bg-card p-6" aria-labelledby="memory-agent-heading">
         <div className="flex items-center gap-2 mb-1">
-          <Brain className="h-4 w-4 text-primary" />
-          <h2 className="text-base font-semibold text-foreground">Memory Agent</h2>
+          <Brain className="h-4 w-4 text-primary" aria-hidden="true" />
+          <h2 id="memory-agent-heading" className="text-base font-semibold text-foreground">Memory Agent</h2>
         </div>
         <p className="text-sm text-muted-foreground mb-5">
           Configure how memory consolidation and knowledge queries work.
@@ -116,25 +118,27 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
           {/* Mode Toggle */}
           <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/30 p-4">
             <div className="space-y-1">
-              <Label className="text-sm font-medium">Auto AI Mode</Label>
-              <p className="text-xs text-muted-foreground max-w-sm">
+              <Label htmlFor="auto-ai-mode" className="text-sm font-medium">Auto AI Mode</Label>
+              <p className="text-xs text-muted-foreground max-w-sm" id="auto-ai-mode-desc">
                 {memorySettings.mode === 'auto'
                   ? 'AI calls are made directly from your browser using your API key.'
                   : 'Copy prompts manually to your AI tool and paste responses back.'}
               </p>
             </div>
             <Switch
+              id="auto-ai-mode"
               checked={memorySettings.mode === 'auto'}
               onCheckedChange={(checked: boolean) =>
                 memorySettings.setMode(checked ? 'auto' : 'manual')
               }
+              aria-describedby="auto-ai-mode-desc"
             />
           </div>
 
           {/* Provider Selection */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">AI Provider</Label>
-            <div className="flex gap-2">
+            <Label className="text-sm font-medium" id="ai-provider-label">AI Provider</Label>
+            <div className="flex gap-2" role="group" aria-labelledby="ai-provider-label">
               {(Object.keys(PROVIDER_LABELS) as MemoryProvider[]).map(
                 (p) => (
                   <Button
@@ -145,6 +149,8 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
                     size="sm"
                     onClick={() => memorySettings.setProvider(p)}
                     className="flex items-center gap-2"
+                    aria-pressed={memorySettings.provider === p}
+                    aria-label={`Use ${PROVIDER_LABELS[p]} as AI provider`}
                   >
                     {PROVIDER_LABELS[p]}
                   </Button>
@@ -178,21 +184,24 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
                     memorySettings.setApiKey(e.target.value)
                   }
                   className="pr-10 font-mono text-xs"
+                  aria-describedby="api-key-hint"
                 />
                 <button
                   type="button"
                   onClick={() => setShowApiKey(!showApiKey)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                  aria-controls="memory-api-key"
                 >
                   {showApiKey ? (
-                    <EyeOff className="h-3.5 w-3.5" />
+                    <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
                   ) : (
-                    <Eye className="h-3.5 w-3.5" />
+                    <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                   )}
                 </button>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground" id="api-key-hint">
               {memorySettings.provider === 'openai'
                 ? 'Stored locally in your browser. Get one at platform.openai.com'
                 : 'Stored locally in your browser. Get one at aistudio.google.com'}
@@ -201,8 +210,8 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
 
           {/* Model Selection */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Model</Label>
-            <div className="flex flex-wrap gap-2">
+            <Label className="text-sm font-medium" id="model-label">Model</Label>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="model-label">
               {MODEL_OPTIONS[memorySettings.provider].map((m) => (
                 <Button
                   key={m}
@@ -214,6 +223,8 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
                   size="sm"
                   onClick={() => memorySettings.setModel(m)}
                   className="text-xs"
+                  aria-pressed={(memorySettings.model || DEFAULT_MODELS[memorySettings.provider]) === m}
+                  aria-label={`Use model ${m}`}
                 >
                   {m}
                 </Button>
@@ -223,16 +234,17 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
 
           {/* Status Indicator */}
           {memorySettings.mode === 'auto' && (
-            <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/20 px-3 py-2" role="status">
               <div
                 className={`h-2 w-2 rounded-full ${
                   memorySettings.apiKey ? 'bg-green-500' : 'bg-amber-500'
                 }`}
+                aria-hidden="true"
               />
               <span className="text-xs text-muted-foreground">
                 {memorySettings.apiKey ? (
                   <>
-                    <Sparkles className="inline h-3 w-3 mr-1" />
+                    <Sparkles className="inline h-3 w-3 mr-1" aria-hidden="true" />
                     Auto mode active — using {PROVIDER_LABELS[memorySettings.provider]} (
                     {memorySettings.model || DEFAULT_MODELS[memorySettings.provider]})
                   </>
@@ -246,10 +258,10 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
       </section>
 
       {/* Keyboard Shortcuts Section */}
-      <section className="rounded-xl border border-border bg-card p-6">
+      <section className="rounded-xl border border-border bg-card p-6" aria-labelledby="shortcuts-heading">
         <div className="flex items-center gap-2 mb-1">
-          <Keyboard className="h-4 w-4 text-primary" />
-          <h2 className="text-base font-semibold text-foreground">Keyboard Shortcuts</h2>
+          <Keyboard className="h-4 w-4 text-primary" aria-hidden="true" />
+          <h2 id="shortcuts-heading" className="text-base font-semibold text-foreground">Keyboard Shortcuts</h2>
         </div>
         <p className="text-sm text-muted-foreground mb-5">
           Enable dashboard keyboard shortcuts or customize your key bindings. 
@@ -259,14 +271,16 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
           {/* Global Toggle */}
           <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/30 p-4">
             <div className="space-y-1">
-              <Label className="text-sm font-medium">Enable Shortcuts</Label>
-              <p className="text-xs text-muted-foreground max-w-sm">
+              <Label htmlFor="enable-shortcuts" className="text-sm font-medium">Enable Shortcuts</Label>
+              <p className="text-xs text-muted-foreground max-w-sm" id="enable-shortcuts-desc">
                 Toggle all keyboard shortcuts globally across the dashboard.
               </p>
             </div>
             <Switch
+              id="enable-shortcuts"
               checked={appSettings.shortcuts_enabled}
               onCheckedChange={(checked) => updateSettings({ shortcuts_enabled: checked })}
+              aria-describedby="enable-shortcuts-desc"
             />
           </div>
 
@@ -277,8 +291,9 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                 {shortcuts.map(shortcut => (
                   <div key={shortcut.id} className="flex flex-col gap-1.5 p-3 rounded-lg border border-border bg-card">
-                    <Label className="text-xs font-medium">{shortcut.description}</Label>
+                    <Label htmlFor={`shortcut-${shortcut.id}`} className="text-xs font-medium">{shortcut.description}</Label>
                     <Input
+                      id={`shortcut-${shortcut.id}`}
                       className="h-8 text-xs font-mono"
                       value={appSettings.custom_shortcuts[shortcut.id] ?? shortcut.defaultKey}
                       onChange={(e) => {
@@ -300,8 +315,8 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
       </section>
 
       {/* Extension Auth Section */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <h2 className="text-base font-semibold text-foreground mb-1">Extension Authentication</h2>
+      <section className="rounded-xl border border-border bg-card p-6" aria-labelledby="extension-auth-heading">
+        <h2 id="extension-auth-heading" className="text-base font-semibold text-foreground mb-1">Extension Authentication</h2>
         <p className="text-sm text-muted-foreground mb-4">
           Connect your browser extension with one click — no manual token copying required.
           Your session is synced securely and refreshes automatically.
@@ -312,6 +327,7 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2"
+            aria-label="Connect browser extension (opens in new tab)"
           >
             Connect Extension →
           </a>
@@ -319,15 +335,15 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
       </section>
 
       {/* Danger Zone Section */}
-      <section className="rounded-xl border border-destructive/40 bg-card p-6">
-        <h2 className="text-base font-semibold text-destructive mb-1">Danger Zone</h2>
+      <section className="rounded-xl border border-destructive/40 bg-card p-6" aria-labelledby="danger-zone-heading">
+        <h2 id="danger-zone-heading" className="text-base font-semibold text-destructive mb-1">Danger Zone</h2>
         <p className="text-sm text-muted-foreground mb-4">
           Permanently delete your account and all associated data. This action cannot be undone.
         </p>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="destructive" size="sm" className="flex items-center gap-2">
-              <Trash2 className="h-3.5 w-3.5" />
+            <Button variant="destructive" size="sm" className="flex items-center gap-2" aria-label="Delete account permanently">
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
               Delete Account
             </Button>
           </DialogTrigger>
@@ -352,6 +368,7 @@ export default function SettingsClient({ email, initials }: SettingsClientProps)
                 variant="destructive"
                 onClick={handleDeleteAccount}
                 disabled={isPending}
+                aria-label="Confirm delete account permanently"
               >
                 {isPending ? 'Deleting…' : 'Yes, delete my account'}
               </Button>

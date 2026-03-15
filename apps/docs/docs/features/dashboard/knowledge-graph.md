@@ -21,10 +21,17 @@ Each node in the graph represents a captured piece of knowledge. The visual node
 
 | Edge Type | Description | Colour |
 |---|---|---|
-| **AI-generated** | Created automatically based on vector similarity (cosine > 0.8). | Default |
+| **AI-generated** | Created automatically based on vector similarity (cosine > 0.8). Lines are **weight-scaled** based on the relationship strength. | Default |
 | **Manual** | Created by the user in Link mode. | Highlighted |
 
 Manual edges can have custom labels.
+
+## Visual Enhancements & Filtering
+
+- **Entity Colors**: Node bubbles are color-coded based on the primary entities they contain (e.g., people, tools, concepts).
+- **Focus Mode**: Click the focus icon to declutter the graph, isolating the selected node and its most relevant connections.
+- **Filtering**: A robust filtering bar allows you to hide or show nodes by tags, collections, or reviews.
+- **Cluster Layout**: Nodes use a physics-based cluster layout to automatically visually group tightly related concepts together on the canvas.
 
 ## Performance: Local Cluster View
 

@@ -30,20 +30,29 @@ The Review tab loads all nodes where `next_review_date ≤ today`. They are pres
 
 Each flashcard shows:
 1. The **node title** and source URL.
-2. A **"Reveal"** button to show the summary.
-3. After reveal: **rating buttons** (Forgot, Hard, Good, Easy).
+2. **Entity tags** extracted from the DB, displayed as badges on each card (up to 3).
+3. A **"Reveal"** button to show the summary.
+4. After reveal: **rating buttons** (Forgot, Hard, Good, Easy) and a **Snooze dropdown** (1h / 1d defer via server action).
 
-The cards feature smooth 3D flip animations during rate and skip actions, creating an engaging review experience. Once the daily queue is complete, an enhanced completion screen is displayed.
+### Enhancements & Gestures
+- **3D Card Flip:** Smooth CSS 3D flip animations during rate and skip actions (with `prefers-reduced-motion` playback support).
+- **Mobile Swipe Gestures:** Swipe right to reveal, swipe left to skip.
+- **Audio Effects:** Web Audio API sound effects trigger on interactions (with a localStorage toggle to mute).
+- **Queue Preview:** The UI shows the next 2 upcoming cards visually stacked beneath the current active card.
+- **Celebration Screen:** Once the daily queue is complete, an enhanced celebration screen is displayed featuring CSS confetti and bounce animations.
 
-## Review Streak
+## Review Streak & Goals
 
-The streak counter shows how many consecutive days you have completed at least one review. Maintaining a streak helps build a consistent daily review habit.
+By maintaining a daily review habit, you unlock further visual enhancements:
+- **Active Streak Flame:** An animated flame icon indicates an active review streak.
+- **Daily Review Goal:** Set a numeric review goal (default 10, click-to-edit). Progress is tracked via a mini progress bar, persisting in localStorage.
 
-## Stats
+## Stats & Tracker
 
 The Review tab header displays:
 - **Due today** — number of cards in the current queue.
 - **Current streak** — consecutive days of reviewing.
+- **Session Accuracy:** A live session accuracy percentage tracker shown during the session and on the final completion screen.
 
 ## Review Records
 

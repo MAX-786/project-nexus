@@ -52,6 +52,7 @@ const sidebars: SidebarsConfig = {
             'features/dashboard/memory',
             'features/dashboard/collections',
             'features/dashboard/settings',
+            'features/dashboard/mobile-pwa',
           ],
         },
       ],

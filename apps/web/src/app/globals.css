@@ -311,7 +311,7 @@
 }
 
 /* Ensure interactive elements always show a clear focus ring */
-button:focus-visible,
+/* button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible,
@@ -326,7 +326,7 @@ textarea:focus-visible,
   outline: 2px solid oklch(0.637 0.237 275);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
-}
+} */
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
